@@ -187,60 +187,43 @@ function beep(f, d = .12, type = 'sine', vol = .15){ try{ actx = actx || new Aud
   const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.value = f;
   g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + d);
   o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + d); }catch(e){} }
-/* ---------- bakgrunnsmusikk (generert, ingen filer) ---------- */
+/* ---------- bakgrunnsmusikk (egne filer, lagret i nettleseren) ---------- */
+const tracks = (() => {
+  let dbp = null;
+  const db = () => dbp || (dbp = new Promise((res, rej) => { const r = indexedDB.open('nyttarsquiz', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('music'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const tx = async (mode, fn) => { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('music', mode); const q = fn(t.objectStore('music')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+  return { get: k => tx('readonly', s => s.get(k)).catch(() => null), put: (k, v) => tx('readwrite', s => s.put(v, k)), del: k => tx('readwrite', s => s.delete(k)) };
+})();
 const music = (() => {
-  let ctx, master, noise, mode = null, on = true, next = 0, step = 0, timer = null;
-  const N = m => 440 * Math.pow(2, (m - 69) / 12);
-  const MODES = {
-    chill: {bpm: 96, vol: 3.4, kick: false, chords: [[60,64,67,71],[57,60,64,67],[53,57,60,64],[55,59,62,65]]},
-    tense: {bpm: 132, vol: 3.2, kick: true, chords: [[57,60,64],[57,60,64],[53,57,60],[52,56,59]]},
-    party: {bpm: 122, vol: 3.4, kick: true, chords: [[60,64,67,72],[57,60,64,69],[53,57,60,65],[55,59,62,67]]}
-  };
-  function init(){
-    if(ctx) return; ctx = new AudioContext(); master = ctx.createGain(); master.gain.value = 0;
-    const comp = ctx.createDynamicsCompressor(); master.connect(comp).connect(ctx.destination);
-    noise = ctx.createBuffer(1, ctx.sampleRate * .2, ctx.sampleRate); const d = noise.getChannelData(0);
-    for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const el = {lobby: new Audio(), question: new Audio()};
+  Object.values(el).forEach(a => { a.loop = true; a.volume = 0; a.preload = 'auto'; });
+  let mode = null, on = true, loaded = {}, fades = {};
+  const TARGET = {chill: ['lobby', 1], party: ['lobby', 1], tense: ['question', 1]};
+  async function load(){
+    for(const k of ['lobby', 'question']){ const t = await tracks.get(k);
+      if(el[k].src) URL.revokeObjectURL(el[k].src);
+      if(t && t.blob){ el[k].src = URL.createObjectURL(t.blob); loaded[k] = t.name; } else { el[k].removeAttribute('src'); loaded[k] = null; } }
   }
-  function tone(f, t, dur, type, vol, cutoff){
-    const o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
-    o.type = type; o.frequency.value = f; fl.type = 'lowpass'; fl.frequency.value = cutoff || 2400;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(.02, dur / 4));
-    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(fl).connect(g).connect(master); o.start(t); o.stop(t + dur + .05);
+  function fade(k, to){
+    const a = el[k]; clearInterval(fades[k]); if(!a.src) return;
+    if(to > 0 && a.paused){ a.play().catch(() => {}); }
+    fades[k] = setInterval(() => { const d = to - a.volume; if(Math.abs(d) < .04){ a.volume = to; clearInterval(fades[k]); if(to === 0) a.pause(); } else a.volume = Math.min(1, Math.max(0, a.volume + Math.sign(d) * .04)); }, 40);
   }
-  function hat(t, vol){ const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    s.buffer = noise; f.type = 'highpass'; f.frequency.value = 7000; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .05);
-    s.connect(f).connect(g).connect(master); s.start(t); }
-  function kick(t){ const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + .12);
-    g.gain.setValueAtTime(.5, t); g.gain.exponentialRampToValueAtTime(.0001, t + .25); o.connect(g).connect(master); o.start(t); o.stop(t + .3); }
-  function play(t){
-    const m = MODES[mode], e = 60 / m.bpm / 2, bar = Math.floor(step / 8) % 4, s8 = step % 8, ch = m.chords[bar];
-    if(s8 === 0) ch.forEach(n => tone(N(n), t, e * 8, 'triangle', .045, 1200));
-    tone(N(ch[(s8 * (mode === 'tense' ? 1 : 2)) % ch.length] + 12), t, e * 1.6, mode === 'tense' ? 'square' : 'sine', mode === 'tense' ? .03 : .06, mode === 'tense' ? 1800 : 3000);
-    if(mode === 'tense' ? true : s8 % 4 === 0) tone(N(ch[0] - 24), t, e * (mode === 'tense' ? .9 : 3.5), 'sawtooth', .07, 380);
-    hat(t, s8 % 2 ? .035 : .02);
-    if(m.kick && s8 % 2 === 0) kick(t);
-  }
-  function loop(){
-    if(!mode) return;
-    while(next < ctx.currentTime + .15){ play(next); next += 60 / MODES[mode].bpm / 2 * (mode === 'tense' && tenseFast() ? .8 : 1); step++; }
-  }
-  let tenseFast = () => false;
-  function set(m){
-    if(m === mode) return; mode = m; if(!ctx) return;
-    clearInterval(timer);
-    master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(m && on ? MODES[m].vol : 0, ctx.currentTime, .4);
-    if(m){ step = 0; next = ctx.currentTime + .1; timer = setInterval(loop, 25); }
+  function apply(){
+    let want = mode && on ? TARGET[mode] : null;
+    if(want && !el[want[0]].src && el.lobby.src) want = ['lobby', mode === 'tense' ? .45 : 1];
+    for(const k of ['lobby', 'question']) fade(k, want && want[0] === k ? want[1] * .85 : (mode === null && on && k === 'lobby' && el.lobby.src && H.st ? .2 : 0));
   }
   return {
-    start(){ try{ init(); ctx.resume(); const m = mode; mode = null; set(m); }catch(e){} },
-    set(m){ if(!ctx){ mode = m; return; } set(m); },
-    toggle(){ on = !on; if(ctx && mode) master.gain.setTargetAtTime(on ? MODES[mode].vol : 0, ctx.currentTime, .2); return on; },
-    fast(fn){ tenseFast = fn; },
-    wake(){ try{ if(ctx && ctx.state !== 'running') ctx.resume(); }catch(e){} }
+    load, loaded: () => loaded,
+    start(){ apply(); },
+    set(m){ mode = m; apply(); },
+    toggle(){ on = !on; apply(); return on; },
+    fast(){}, wake(){ apply(); }
   };
 })();
+const musicReady = music.load().catch(() => {});
 const chime = () => [660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, .35, 'triangle'), i * 110));
 
 /* =========================================================
@@ -388,6 +371,7 @@ function hostLogin(msg){
     <form class="card" id="hf" style="display:flex;flex-direction:column;gap:14px">
       <div><label for="hpin">PIN</label><input id="hpin" type="password" inputmode="numeric" value="${esc(pin)}"></div>
       <div><label for="hteams">Antall lag</label><select id="hteams">${[0,2,3,4,5,6,7,8].map(n => `<option value="${n}" ${n === 5 ? 'selected' : ''}>${n ? n + ' lag' : 'Ingen lag'}</option>`).join('')}</select></div>
+      <div><label>Musikk (valgfritt, mp3 eller lignende)</label><div id="musicbox" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <div class="err" id="herr">${esc(msg || '')}</div>
       <button type="submit" style="min-height:56px">Start nytt spill</button>
       <div id="resumebox"></div>
@@ -399,6 +383,7 @@ function hostLogin(msg){
       H.s = {gid: r.game_id, pin: pinv}; ls.set('nq_host', H.s); startHost();
     }catch(err){ document.getElementById('herr').textContent = err.message; }
   });
+  renderMusicBox(); musicReady.then(renderMusicBox);
   if(H.s && H.s.gid && H.s.pin){
     rpc('quiz_host_status', {p_game: H.s.gid, p_pin: H.s.pin}).then(st => {
       if(st.game.status === 'ended') return;
@@ -409,7 +394,16 @@ function hostLogin(msg){
   }
 }
 
-music.fast(() => H.st && H.st.game.status === 'question' && left(H.st.game.q_ends_at) < 6);
+function renderMusicBox(){
+  const box = document.getElementById('musicbox'); if(!box) return; const l = music.loaded();
+  const row = (k, label) => `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:140px;font-size:15px">${label}: <span class="mute">${l[k] ? esc(l[k]) : 'ingen valgt'}</span></span>
+    <label class="ghost" style="margin:0;display:inline-flex;align-items:center;min-height:40px;padding:6px 14px;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer">Velg fil<input type="file" accept="audio/*" data-k="${k}" hidden></label>
+    ${l[k] ? `<button type="button" class="ghost" data-rm="${k}" style="min-height:40px;padding:6px 12px;font-size:14px">Fjern</button>` : ''}</div>`;
+  box.innerHTML = row('lobby', 'Lobby og stilling') + row('question', 'Under spørsmål');
+  box.querySelectorAll('input[type=file]').forEach(i => i.addEventListener('change', async () => { const f = i.files[0]; if(!f) return;
+    try{ await tracks.put(i.dataset.k, {name: f.name, blob: f}); await music.load(); renderMusicBox(); }catch(e){ document.getElementById('herr').textContent = 'Kunne ikke lagre lydfilen i nettleseren'; } }));
+  box.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', async () => { await tracks.del(b.dataset.rm); await music.load(); renderMusicBox(); }));
+}
 async function startHost(){
   music.start();
   try{ H.qs = await rpc('quiz_host_questions', {p_game: H.s.gid, p_pin: H.s.pin}); }
@@ -507,7 +501,7 @@ function renderHost(){
     app.innerHTML = html;
     const nb = document.getElementById('next'); if(nb) nb.addEventListener('click', hostNext);
     const qb = document.getElementById('quit'); if(qb) qb.addEventListener('click', () => { clearInterval(H.poll); H.st = null; music.set(null); hostLogin(); });
-    const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); music.set(null); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
+    const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); H.st = null; music.set(null); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
   }
   // levende deler
   if(g.status === 'lobby'){
