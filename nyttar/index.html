@@ -95,8 +95,10 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 .fcard{border-radius:20px;padding:22px;background:rgba(255,255,255,.08);border:1.5px solid var(--gold);text-align:center;font-size:clamp(18px,1.8vw,28px);font-weight:700}
 .fcard small{display:block;color:var(--mute);font-weight:600;font-size:.7em}
 .hint{font-size:14px;color:var(--mute)}
-#fs{position:fixed;right:14px;bottom:14px;z-index:6;min-height:44px;padding:8px 16px;font-size:14px;opacity:.55}
-#fs:hover,#fs:focus-visible{opacity:1}
+.ctl{position:fixed;bottom:14px;z-index:6;min-height:44px;padding:8px 16px;font-size:14px;opacity:.55}
+#fs{right:14px}#mu{right:150px}
+.ctl:hover,.ctl:focus-visible{opacity:1}
+:fullscreen #mu{right:14px}
 :fullscreen #fs{display:none}
 /* ---------- redigering ---------- */
 .ed{max-width:960px;margin:0 auto;padding:24px 18px 120px;display:flex;flex-direction:column;gap:20px}
@@ -120,7 +122,8 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 </head>
 <body>
 <canvas id="fw"></canvas>
-<button id="fs" class="ghost" hidden>⛶ Fullskjerm</button>
+<button id="fs" class="ghost ctl" hidden>⛶ Fullskjerm</button>
+<button id="mu" class="ghost ctl" hidden>♪ Musikk på</button>
 <div id="app"><div class="phone"><p class="mute">Laster…</p></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -180,6 +183,59 @@ function beep(f, d = .12, type = 'sine', vol = .15){ try{ actx = actx || new Aud
   const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.value = f;
   g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + d);
   o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + d); }catch(e){} }
+/* ---------- bakgrunnsmusikk (generert, ingen filer) ---------- */
+const music = (() => {
+  let ctx, master, noise, mode = null, on = true, next = 0, step = 0, timer = null;
+  const N = m => 440 * Math.pow(2, (m - 69) / 12);
+  const MODES = {
+    chill: {bpm: 96, vol: .5, kick: false, chords: [[60,64,67,71],[57,60,64,67],[53,57,60,64],[55,59,62,65]]},
+    tense: {bpm: 132, vol: .55, kick: true, chords: [[57,60,64],[57,60,64],[53,57,60],[52,56,59]]},
+    party: {bpm: 122, vol: .6, kick: true, chords: [[60,64,67,72],[57,60,64,69],[53,57,60,65],[55,59,62,67]]}
+  };
+  function init(){
+    if(ctx) return; ctx = new AudioContext(); master = ctx.createGain(); master.gain.value = 0;
+    const comp = ctx.createDynamicsCompressor(); master.connect(comp).connect(ctx.destination);
+    noise = ctx.createBuffer(1, ctx.sampleRate * .2, ctx.sampleRate); const d = noise.getChannelData(0);
+    for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  function tone(f, t, dur, type, vol, cutoff){
+    const o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+    o.type = type; o.frequency.value = f; fl.type = 'lowpass'; fl.frequency.value = cutoff || 2400;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(.02, dur / 4));
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(fl).connect(g).connect(master); o.start(t); o.stop(t + dur + .05);
+  }
+  function hat(t, vol){ const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noise; f.type = 'highpass'; f.frequency.value = 7000; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .05);
+    s.connect(f).connect(g).connect(master); s.start(t); }
+  function kick(t){ const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + .12);
+    g.gain.setValueAtTime(.5, t); g.gain.exponentialRampToValueAtTime(.0001, t + .25); o.connect(g).connect(master); o.start(t); o.stop(t + .3); }
+  function play(t){
+    const m = MODES[mode], e = 60 / m.bpm / 2, bar = Math.floor(step / 8) % 4, s8 = step % 8, ch = m.chords[bar];
+    if(s8 === 0) ch.forEach(n => tone(N(n), t, e * 8, 'triangle', .045, 1200));
+    tone(N(ch[(s8 * (mode === 'tense' ? 1 : 2)) % ch.length] + 12), t, e * 1.6, mode === 'tense' ? 'square' : 'sine', mode === 'tense' ? .03 : .06, mode === 'tense' ? 1800 : 3000);
+    if(mode === 'tense' ? true : s8 % 4 === 0) tone(N(ch[0] - 24), t, e * (mode === 'tense' ? .9 : 3.5), 'sawtooth', .07, 380);
+    hat(t, s8 % 2 ? .035 : .02);
+    if(m.kick && s8 % 2 === 0) kick(t);
+  }
+  function loop(){
+    if(!mode) return;
+    while(next < ctx.currentTime + .15){ play(next); next += 60 / MODES[mode].bpm / 2 * (mode === 'tense' && tenseFast() ? .8 : 1); step++; }
+  }
+  let tenseFast = () => false;
+  function set(m){
+    if(m === mode) return; mode = m; if(!ctx) return;
+    clearInterval(timer);
+    master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(m && on ? MODES[m].vol : 0, ctx.currentTime, .4);
+    if(m){ step = 0; next = ctx.currentTime + .1; timer = setInterval(loop, 25); }
+  }
+  return {
+    start(){ try{ init(); ctx.resume(); const m = mode; mode = null; set(m); }catch(e){} },
+    set(m){ if(!ctx){ mode = m; return; } set(m); },
+    toggle(){ on = !on; if(ctx && mode) master.gain.setTargetAtTime(on ? MODES[mode].vol : 0, ctx.currentTime, .2); return on; },
+    fast(fn){ tenseFast = fn; }
+  };
+})();
 const chime = () => [660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, .35, 'triangle'), i * 110));
 
 /* =========================================================
@@ -348,7 +404,9 @@ function hostLogin(msg){
   }
 }
 
+music.fast(() => H.st && H.st.game.status === 'question' && left(H.st.game.q_ends_at) < 6);
 async function startHost(){
+  music.start();
   try{ H.qs = await rpc('quiz_host_questions', {p_game: H.s.gid, p_pin: H.s.pin}); }
   catch(e){ return hostLogin('Fant ikke spillet. Start et nytt.'); }
   H.key = ''; clearInterval(H.poll); H.poll = setInterval(pollHost, 1000); pollHost();
@@ -390,6 +448,7 @@ function renderHost(){
     H.key = key; H.lastSec = null;
     let html = '';
     fw.set(0);
+    music.set({lobby: 'chill', leaderboard: 'chill', finale_intro: 'chill', wager: 'tense', question: 'tense', reveal: null, ended: 'party'}[g.status]);
     if(g.status === 'lobby'){
       fw.set(1);
       const qr = qrcode(0, 'M'); qr.addData(playerUrl() + '?k=' + g.code); qr.make();
@@ -400,7 +459,7 @@ function renderHost(){
               <p class="mute" style="margin:18px 0 4px;font-size:clamp(16px,1.4vw,22px)">Kode</p><div class="code">${esc(g.code)}</div></div></div>
           <div id="teams"></div></div>
           <div><div class="names" id="names"></div><p class="hint" id="kickhint"></p></div></div>
-        <div class="foot"><span class="hint">${H.qs.length} spørsmål · mellomrom går videre · F gir fullskjerm</span>${nextBtn('Start quizen')}</div></div>`;
+        <div class="foot"><span class="hint">${H.qs.length} spørsmål · mellomrom går videre · F fullskjerm · M musikk</span>${nextBtn('Start quizen')}</div></div>`;
     } else if(g.status === 'wager'){
       html = `<div class="stage"><div class="head"><span class="chip">${esc(q.round_title)} · ${q.q_no}/${q.round_len}</span><div class="ring" id="ring"><span id="sec"></span></div></div>
         <div class="center" style="margin:auto;max-width:900px"><h1 style="font-size:clamp(44px,6vw,96px);color:var(--gold)">${q.kind === 'finale' ? 'Finalen' : 'Innsatsrunde'}</h1>
@@ -442,8 +501,8 @@ function renderHost(){
     }
     app.innerHTML = html;
     const nb = document.getElementById('next'); if(nb) nb.addEventListener('click', hostNext);
-    const qb = document.getElementById('quit'); if(qb) qb.addEventListener('click', () => { clearInterval(H.poll); H.st = null; hostLogin(); });
-    const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
+    const qb = document.getElementById('quit'); if(qb) qb.addEventListener('click', () => { clearInterval(H.poll); H.st = null; music.set(null); hostLogin(); });
+    const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); music.set(null); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
   }
   // levende deler
   if(g.status === 'lobby'){
@@ -475,8 +534,12 @@ function renderHost(){
 const fsBtn = document.getElementById('fs');
 function toggleFs(){ try{ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }catch(e){} }
 fsBtn.addEventListener('click', toggleFs);
+const muBtn = document.getElementById('mu');
+function toggleMusic(){ const on = music.toggle(); muBtn.textContent = on ? '♪ Musikk på' : '♪ Musikk av'; music.start(); }
+muBtn.addEventListener('click', toggleMusic);
 document.addEventListener('keydown', e => {
   if(location.hash === '#vert' && (e.key === 'f' || e.key === 'F') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ toggleFs(); return; }
+  if(location.hash === '#vert' && (e.key === 'm' || e.key === 'M') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ toggleMusic(); return; }
   if(location.hash !== '#vert' || !H.st || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
   if(e.key === ' ' || e.key === 'ArrowRight'){ e.preventDefault(); if(H.st.game.status !== 'ended') hostNext(); }
 });
@@ -598,6 +661,7 @@ addEventListener('beforeunload', e => { if(E.dirty){ e.preventDefault(); e.retur
 function route(){
   clearInterval(H.poll); clearInterval(P.poll);
   fsBtn.hidden = location.hash !== '#vert' || !document.documentElement.requestFullscreen;
+  muBtn.hidden = location.hash !== '#vert'; if(location.hash !== '#vert') music.set(null);
   if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; hostLogin(); }
   else if(location.hash === '#rediger'){ document.title = 'Nyttårsquiz · redigering'; editLogin(); }
   else { document.title = 'Nyttårsquiz'; if(P.s && P.s.pid) startPlayer(); else playerJoin(); }
