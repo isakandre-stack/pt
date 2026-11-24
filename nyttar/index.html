@@ -95,6 +95,9 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 .fcard{border-radius:20px;padding:22px;background:rgba(255,255,255,.08);border:1.5px solid var(--gold);text-align:center;font-size:clamp(18px,1.8vw,28px);font-weight:700}
 .fcard small{display:block;color:var(--mute);font-weight:600;font-size:.7em}
 .hint{font-size:14px;color:var(--mute)}
+#fs{position:fixed;right:14px;bottom:14px;z-index:6;min-height:44px;padding:8px 16px;font-size:14px;opacity:.55}
+#fs:hover,#fs:focus-visible{opacity:1}
+:fullscreen #fs{display:none}
 /* ---------- redigering ---------- */
 .ed{max-width:960px;margin:0 auto;padding:24px 18px 120px;display:flex;flex-direction:column;gap:20px}
 .round{border:1px solid var(--line);border-radius:22px;padding:20px;background:rgba(20,10,50,.7);display:flex;flex-direction:column;gap:14px}
@@ -117,6 +120,7 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 </head>
 <body>
 <canvas id="fw"></canvas>
+<button id="fs" class="ghost" hidden>⛶ Fullskjerm</button>
 <div id="app"><div class="phone"><p class="mute">Laster…</p></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -390,7 +394,7 @@ function renderHost(){
               <p class="mute" style="margin:18px 0 4px;font-size:clamp(16px,1.4vw,22px)">Kode</p><div class="code">${esc(g.code)}</div></div></div>
           <div id="teams"></div></div>
           <div><div class="names" id="names"></div><p class="hint" id="kickhint"></p></div></div>
-        <div class="foot"><span class="hint">${H.qs.length} spørsmål · trykk mellomrom eller knappen for å gå videre</span>${nextBtn('Start quizen')}</div></div>`;
+        <div class="foot"><span class="hint">${H.qs.length} spørsmål · mellomrom går videre · F gir fullskjerm</span>${nextBtn('Start quizen')}</div></div>`;
     } else if(g.status === 'wager'){
       html = `<div class="stage"><div class="head"><span class="chip">${esc(q.round_title)} · ${q.q_no}/${q.round_len}</span><div class="ring" id="ring"><span id="sec"></span></div></div>
         <div class="center" style="margin:auto;max-width:900px"><h1 style="font-size:clamp(44px,6vw,96px);color:var(--gold)">${q.kind === 'finale' ? 'Finalen' : 'Innsatsrunde'}</h1>
@@ -461,7 +465,11 @@ function renderHost(){
       if(l <= 0) autoAdvance(); } }
   requestAnimationFrame(hostTimer);
 })();
+const fsBtn = document.getElementById('fs');
+function toggleFs(){ try{ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }catch(e){} }
+fsBtn.addEventListener('click', toggleFs);
 document.addEventListener('keydown', e => {
+  if(location.hash === '#vert' && (e.key === 'f' || e.key === 'F') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ toggleFs(); return; }
   if(location.hash !== '#vert' || !H.st || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
   if(e.key === ' ' || e.key === 'ArrowRight'){ e.preventDefault(); if(H.st.game.status !== 'ended') hostNext(); }
 });
@@ -582,6 +590,7 @@ addEventListener('beforeunload', e => { if(E.dirty){ e.preventDefault(); e.retur
 /* ---------- ruting ---------- */
 function route(){
   clearInterval(H.poll); clearInterval(P.poll);
+  fsBtn.hidden = location.hash !== '#vert' || !document.documentElement.requestFullscreen;
   if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; (H.s && H.s.gid && H.s.pin) ? startHost() : hostLogin(); }
   else if(location.hash === '#rediger'){ document.title = 'Nyttårsquiz · redigering'; editLogin(); }
   else { document.title = 'Nyttårsquiz'; if(P.s && P.s.pid) startPlayer(); else playerJoin(); }
