@@ -93,6 +93,22 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 .pod{text-align:center;display:flex;flex-direction:column;gap:10px}
 .pod .blk{border-radius:20px 20px 0 0;background:var(--grad);color:#fff;font-family:var(--dfont);font-weight:800;font-size:clamp(36px,5vw,80px);display:grid;place-items:center}
 .pod .nm{font-size:clamp(18px,2vw,32px);font-weight:700;overflow-wrap:anywhere}
+.cer{position:relative;flex:1;display:flex;flex-direction:column;gap:clamp(14px,2vw,28px)}
+.cer .head,.cer .foot{position:relative;z-index:4}
+#dark{position:absolute;inset:-60px;z-index:3;pointer-events:none;background:rgba(2,4,18,.93);transition:opacity 1.4s;
+  --x1:-999px;--y1:-999px;--x2:-999px;--y2:-999px;--r:160px;
+  -webkit-mask-image:radial-gradient(circle var(--r) at var(--x1) var(--y1),transparent 55%,#000 100%),radial-gradient(circle var(--r) at var(--x2) var(--y2),transparent 55%,#000 100%);
+  -webkit-mask-composite:source-in;mask-image:radial-gradient(circle var(--r) at var(--x1) var(--y1),transparent 55%,#000 100%),radial-gradient(circle var(--r) at var(--x2) var(--y2),transparent 55%,#000 100%);mask-composite:intersect}
+#beams{position:absolute;inset:-60px;z-index:3;pointer-events:none;width:calc(100% + 120px);height:calc(100% + 120px);mix-blend-mode:screen;transition:opacity 1.4s}
+.lit #dark,.lit #beams{opacity:0}
+.pod .blk{transform:scaleY(0);transform-origin:bottom;transition:transform 1s cubic-bezier(.2,.9,.25,1.15)}
+.pod.up .blk{transform:scaleY(1)}
+.pod .nm,.pod .sc{opacity:0;transform:translateY(14px) scale(.85);filter:blur(10px);transition:opacity .8s,transform .8s,filter .8s}
+.pod.named .nm,.pod.named .sc{opacity:1;transform:none;filter:none}
+.pod.named .nm{text-shadow:0 0 30px rgba(255,255,255,.35)}
+.nt,.nt *{transition:none!important}
+.cer .teamwin{opacity:0;transform:translateY(-8px);transition:opacity 1s .6s,transform 1s .6s}
+.lit .teamwin{opacity:1;transform:none}
 .finalists{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
 .fcard{border-radius:20px;padding:22px;background:rgba(255,255,255,.08);border:1.5px solid var(--gold);text-align:center;font-size:clamp(18px,1.8vw,28px);font-weight:700}
 .fcard small{display:block;color:var(--mute);font-weight:600;font-size:.7em}
@@ -235,6 +251,16 @@ async function loadBrandFont(){
     return t.name; }catch(e){ return null; }
 }
 let fontName = null; const fontReady = loadBrandFont().then(n => fontName = n).catch(() => {});
+function noiseHit(t, vol, freq, dur, type){ const c = actx, n = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = n.getChannelData(0);
+  for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); src.buffer = n; f.type = type; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur); src.connect(f).connect(g).connect(c.destination); src.start(t); }
+function drumroll(sec){ try{ actx = actx || new AudioContext(); actx.resume(); const t0 = actx.currentTime; let t = t0;
+  while(t < t0 + sec){ const k = (t - t0) / sec; noiseHit(t, .12 + .35 * k, 1700, .07, 'bandpass'); t += .1 - .065 * k; }
+  noiseHit(t0 + sec, .7, 5500, 2.2, 'highpass');
+  const o = actx.createOscillator(), g = actx.createGain(); o.frequency.setValueAtTime(110, t0 + sec); o.frequency.exponentialRampToValueAtTime(40, t0 + sec + .5);
+  g.gain.setValueAtTime(.8, t0 + sec); g.gain.exponentialRampToValueAtTime(.0001, t0 + sec + .9); o.connect(g).connect(actx.destination); o.start(t0 + sec); o.stop(t0 + sec + 1);
+  }catch(e){} }
 const chime = () => [660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, .35, 'triangle'), i * 110));
 
 /* =========================================================
@@ -276,7 +302,7 @@ async function refreshPlayer(first){
   try{
     const d = await rpc('quiz_me', {p_player: P.s.pid, p_token: P.s.token});
     const k = new URLSearchParams(location.search).get('k');
-    if(first && ((k && k !== d.game.code) || d.game.status === 'ended')) throw new Error('nytt spill');
+    if(first && ((k && k !== d.game.code) || (d.game.status === 'ended' && d.game.ceremony >= 4))) throw new Error('nytt spill');
     syncClock(d.server_now); P.data = d;
     if(first || !P.chan){
       P.chan = sb.channel('g-' + d.game.id).on('postgres_changes', {event:'UPDATE', schema:'public', table:'quiz_games', filter:'id=eq.' + d.game.id}, () => setTimeout(refreshPlayer, 50)).subscribe();
@@ -289,10 +315,10 @@ async function refreshPlayer(first){
 
 function renderPlayer(){
   const {game: g, me, answer: a} = P.data;
-  const key = [g.status, g.q_index, a && a.choice, a && a.wager, me.kicked, me.score].join('|');
+  const key = [g.status, g.q_index, a && a.choice, a && a.wager, me.kicked, me.score, g.ceremony].join('|');
   if(key === P.key) return; P.key = key;
   const q = g.q || {};
-  const top = `<div class="top"><span class="chip">${teamDot(me.team)}${esc(me.name)}</span><span class="mute">${fmt(me.score)} poeng</span></div>`;
+  const top = `<div class="top"><span class="chip">${teamDot(me.team)}${esc(me.name)}</span><span class="mute">${g.status === 'ended' && g.ceremony < 4 ? '' : fmt(me.score) + ' poeng'}</span></div>`;
   const isFinale = q.kind === 'finale';
   const out = !me.finalist && isFinale && (g.status === 'wager' || g.status === 'question');
   let body = '';
@@ -340,6 +366,16 @@ function renderPlayer(){
   } else if(g.status === 'finale_intro'){
     body = me.finalist ? `<div class="card center" style="margin-top:8vh"><h2 class="big" style="color:var(--gold)">Du er i finalen!</h2><p>Du kan satse så mye du vil av poengene dine på ett siste spørsmål.</p></div>`
       : `<div class="card center" style="margin-top:8vh"><h2>Topp 5 går til finalen</h2><p class="mute">Du endte på plass ${me.rank}. Hei på finalistene!</p></div>`;
+  } else if(g.status === 'ended' && g.ceremony < 4){
+    const mine = me.rank <= 3 && g.ceremony >= 4 - me.rank;
+    if(mine){
+      fw.set(2); if(navigator.vibrate && P.vib !== me.rank){ P.vib = me.rank; navigator.vibrate([200, 100, 200, 100, 400]); }
+      body = `<div class="card center" style="margin-top:6vh;border:2px solid #ff4f87"><p class="mute">Gratulerer!</p>
+        <div class="big disp code" style="font-size:clamp(70px,24vw,120px)">${me.rank}.</div><h2>${me.rank === 1 ? 'Du vant!' : 'plass'}</h2>
+        <p style="font-size:20px"><b>Gå opp på scenen!</b></p></div>`;
+    } else {
+      body = `<div class="card center" style="margin-top:8vh"><span class="chip">Kåringen</span><h2>Følg med på storskjermen</h2><p class="mute">Pallen avsløres nå. Plasseringen din kommer når kåringen er ferdig.</p></div>`;
+    }
   } else if(g.status === 'ended'){
     fw.set(me.rank <= 3 ? 2 : 1);
     body = `<div class="card center" style="margin-top:6vh"><span class="chip">Godt nyttår!</span><p class="mute">Du ble nummer</p><div class="big disp" style="color:var(--gold)">${me.rank}</div><p>${fmt(me.score)} poeng</p><button class="ghost" id="again">Bli med i et nytt spill</button></div>`;
@@ -510,19 +546,22 @@ function renderHost(){
         <div class="finalists">${fin.map((p, i) => `<div class="fcard"><small>Plass ${i + 1}</small>${esc(p.name)}<small>${fmt(p.score)} poeng</small></div>`).join('')}</div>
         <div class="foot"><span></span>${nextBtn('Start finalen')}</div></div>`;
     } else if(g.status === 'ended'){
-      fw.set(2); chime();
       const [a, b, c] = players; const tt = teamTable(g, players)[0];
-      const pod = (p, h, n) => p ? `<div class="pod"><div class="nm">${esc(p.name)}</div><div class="mute">${fmt(p.score)}</div><div class="blk" style="height:${h}">${n}</div></div>` : '<div></div>';
-      html = `<div class="stage"><div class="head"><h1 style="font-size:clamp(36px,4.4vw,72px)">Godt nyttår!</h1>${tt ? `<span class="chip" style="font-size:clamp(16px,1.6vw,24px)">${teamDot(tt.i)} Vinnerlaget: ${esc(tt.name)}</span>` : ''}</div>
+      const pod = (p, h, n) => p ? `<div class="pod" data-place="${n}"><div class="nm">${esc(p.name)}</div><div class="sc mute">${fmt(p.score)} poeng</div><div class="blk" style="height:${h}">${n}</div></div>` : '<div></div>';
+      html = `<div class="stage cer" id="cer"><div id="dark"></div><svg id="beams"></svg>
+        <div class="head"><h1 id="certitle" style="font-size:clamp(36px,4.4vw,72px)">Kåringen</h1>${tt ? `<span class="chip teamwin" style="font-size:clamp(16px,1.6vw,24px)">${teamDot(tt.i)} Vinnerlaget: ${esc(tt.name)}</span>` : ''}</div>
         <div class="podium" style="margin-top:auto">${pod(b, '26vh', 2)}${pod(a, '36vh', 1)}${pod(c, '18vh', 3)}</div>
-        <div class="foot"><span class="hint">${players.length} spillere</span><button class="ghost" id="newgame">Nytt spill</button></div></div>`;
+        <div class="foot"><span class="hint">${players.length} spillere · mellomrom avslører neste</span><span style="display:flex;gap:10px"><button class="ghost" id="newgame" hidden>Nytt spill</button><button id="cnext" style="min-height:56px;font-size:19px;padding:12px 30px"></button></span></div></div>`;
+      H.cer = null;
     }
     app.innerHTML = html;
     const nb = document.getElementById('next'); if(nb) nb.addEventListener('click', hostNext);
     const qb = document.getElementById('quit'); if(qb) qb.addEventListener('click', () => { clearInterval(H.poll); H.st = null; music.set(null); hostLogin(); });
+    const cn = document.getElementById('cnext'); if(cn) cn.addEventListener('click', ceremonyNext);
     const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); H.st = null; music.set(null); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
   }
   // levende deler
+  if(g.status === 'ended' && H.cer !== g.ceremony && !H.cerPending) ceremonyShow(g.ceremony);
   if(g.status === 'lobby'){
     const pc = document.getElementById('pc'); if(pc) pc.textContent = players.length + (players.length === 1 ? ' spiller' : ' spillere');
     const nm = document.getElementById('names');
@@ -540,6 +579,72 @@ function renderHost(){
   }
   const cnt = document.getElementById('cnt');
   if(cnt) cnt.textContent = g.status === 'wager' ? `${H.st.wagered} av ${eligible()} har satset` : `${H.st.answered} av ${eligible()} har svart`;
+}
+/* ---------- kåringen ---------- */
+const CER_LABEL = ['Avslør 3. plass', 'Avslør 2. plass', 'Avslør vinneren', 'Skru på lyset'];
+const podEl = n => document.querySelector(`.pod[data-place="${n}"]`);
+function spotTarget(n){ const pe = podEl(n), cer = document.getElementById('cer'); if(!pe || !cer) return null;
+  const r = pe.getBoundingClientRect(), c = cer.getBoundingClientRect(), nm = pe.querySelector('.nm').getBoundingClientRect();
+  return {x: r.left - c.left + r.width / 2 + 60, y: nm.top - c.top + 60 + (r.bottom - nm.top) * .35, r: Math.max(r.width * .85, 180)}; }
+function setSpots(p1, p2, r){ const d = document.getElementById('dark'); if(!d) return;
+  d.style.setProperty('--x1', p1 ? p1.x + 'px' : '-999px'); d.style.setProperty('--y1', p1 ? p1.y + 'px' : '-999px');
+  d.style.setProperty('--x2', p2 ? p2.x + 'px' : '-999px'); d.style.setProperty('--y2', p2 ? p2.y + 'px' : '-999px');
+  d.style.setProperty('--r', (r || 170) + 'px');
+  const sv = document.getElementById('beams'); if(!sv) return; const W = sv.clientWidth, Hh = sv.clientHeight;
+  sv.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  const beam = (p, sx, id) => p ? `<defs><linearGradient id="${id}" x1="${sx}" y1="0" x2="${p.x}" y2="${p.y}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".32"/><stop offset="1" stop-color="#fff" stop-opacity=".05"/></linearGradient></defs>
+    <polygon points="${sx - 10},0 ${sx + 10},0 ${p.x + (r || 170) * .55},${p.y} ${p.x - (r || 170) * .55},${p.y}" fill="url(#${id})"/>` : '';
+  sv.innerHTML = beam(p1, W * .12, 'b1') + beam(p2, W * .88, 'b2'); }
+function sweep(target, ms, two){
+  return new Promise(res => { const cer = document.getElementById('cer'); if(!cer || !target) return res();
+    const W = cer.clientWidth + 120, Hh = cer.clientHeight + 120, rnd = () => ({x: W * (.15 + Math.random() * .7), y: Hh * (.35 + Math.random() * .45)});
+    const pts1 = [rnd(), rnd(), rnd(), rnd(), target], pts2 = [rnd(), rnd(), rnd(), rnd(), target], t0 = performance.now();
+    const at = (pts, k) => { const f = k * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f)), u = f - i, e = u * u * (3 - 2 * u);
+      return {x: pts[i].x + (pts[i + 1].x - pts[i].x) * e, y: pts[i].y + (pts[i + 1].y - pts[i].y) * e}; };
+    (function step(now){ const k = Math.max(0, Math.min(1, (now - t0) / ms));
+      setSpots(at(pts1, k), two ? at(pts2, k) : null, 150 + (target.r - 150) * k);
+      if(k < 1) requestAnimationFrame(step); else res(); })(t0);
+  });
+}
+function countUp(el, to, ms){ const t0 = performance.now(); (function f(now){ const k = Math.max(0, Math.min(1, (now - t0) / ms)); el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - k, 3)))) + ' poeng'; if(k < 1) requestAnimationFrame(f); })(t0); }
+function ceremonyButtons(c){ const cn = document.getElementById('cnext'), ng = document.getElementById('newgame');
+  if(cn){ cn.hidden = c >= 4; cn.textContent = (CER_LABEL[c] || '') + ' →'; cn.disabled = !!H.cerBusy; } if(ng) ng.hidden = c < 4; }
+async function ceremonyShow(c){
+  const prev = H.cer; H.cer = c; const cer = document.getElementById('cer'); if(!cer) return;
+  const animate = prev !== null && c === prev + 1;
+  const places = [3, 2, 1].slice(0, Math.min(c, 3));
+  if(!animate){
+    cer.classList.add('nt'); places.forEach(n => { const pe = podEl(n); if(pe) pe.classList.add('up', 'named'); });
+    if(c >= 4){ cer.classList.add('lit'); document.getElementById('certitle').textContent = 'Godt nyttår!'; fw.set(2); music.set('party'); }
+    else { fw.set(0); music.set(null); const last = places[places.length - 1]; setSpots(last ? spotTarget(last) : null, null, last ? spotTarget(last).r : 0); }
+    requestAnimationFrame(() => cer.classList.remove('nt')); ceremonyButtons(c); return;
+  }
+  H.cerBusy = true; ceremonyButtons(c);
+  if(c <= 3){
+    const n = 4 - c, pe = podEl(n), tg = spotTarget(n), dur = n === 1 ? 4600 : 3200;
+    music.set(null); fw.set(0); drumroll(dur / 1000);
+    if(n === 1) document.getElementById('certitle').textContent = 'Og vinneren er…';
+    await sweep(tg, dur, n === 1);
+    if(pe){ pe.classList.add('up'); await new Promise(r => setTimeout(r, 700)); pe.classList.add('named');
+      const sc = pe.querySelector('.sc'), pl = H.st.players[n - 1]; if(sc && pl) countUp(sc, pl.score, 1400); }
+    for(let i = 0; i < (n === 1 ? 4 : 2); i++) setTimeout(() => fw.burst(), i * 250);
+    if(n === 1) document.getElementById('certitle').textContent = 'Kåringen';
+  } else {
+    cer.classList.add('lit'); document.getElementById('certitle').textContent = 'Godt nyttår!';
+    fw.set(2); music.set('party'); chime();
+  }
+  await new Promise(r => setTimeout(r, 900)); H.cerBusy = false; ceremonyButtons(c);
+}
+async function ceremonyNext(){
+  if(H.cerBusy || !H.st || H.st.game.status !== 'ended' || H.st.game.ceremony >= 4) return;
+  H.cerBusy = true; H.cerPending = true; ceremonyButtons(H.cer);
+  try{ let g = await rpc('quiz_host_ceremony', {p_game: H.s.gid, p_pin: H.s.pin});
+    // hopp over plasser som ikke finnes (færre enn 3 spillere)
+    while(g.ceremony <= 3 && !podEl(4 - g.ceremony)) g = await rpc('quiz_host_ceremony', {p_game: H.s.gid, p_pin: H.s.pin});
+    H.st.game.ceremony = g.ceremony; H.cerBusy = false;
+    if(H.cer !== g.ceremony){ H.cer = g.ceremony - 1; ceremonyShow(g.ceremony); }
+  }catch(e){ H.cerBusy = false; ceremonyButtons(H.cer); }
+  H.cerPending = false;
 }
 (function hostTimer(){
   if(H.st){ const g = H.st.game, ring = document.getElementById('ring'), sec = document.getElementById('sec');
@@ -560,7 +665,7 @@ document.addEventListener('keydown', e => {
   if(location.hash === '#vert' && (e.key === 'f' || e.key === 'F') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ toggleFs(); return; }
   if(location.hash === '#vert' && (e.key === 'm' || e.key === 'M') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ toggleMusic(); return; }
   if(location.hash !== '#vert' || !H.st || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
-  if(e.key === ' ' || e.key === 'ArrowRight'){ e.preventDefault(); if(H.st.game.status !== 'ended') hostNext(); }
+  if(e.key === ' ' || e.key === 'ArrowRight'){ e.preventDefault(); if(H.st.game.status !== 'ended') hostNext(); else ceremonyNext(); }
 });
 
 /* =========================================================
