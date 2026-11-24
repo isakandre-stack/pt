@@ -6,16 +6,17 @@
 <meta name="theme-color" content="#140b2e">
 <title>Nyttårsquiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 /*
 VOICE: festlig, stor og tydelig, lesbar fra bakerste bord
 IDEA: et nyttårsfyrverkeri over byen ved midnatt
 PICTURE: fyrverkeri i bakgrunnen, store fargede svarknapper med egne symboler
-COLOUR and TYPE: midnatt #140b2e, champagne #f6d488, svar i korall/turkis/gull/fiolett; Unbounded + Inter
+COLOUR and TYPE: midnatt #140b2e, champagne #f6d488, svar i korall/turkis/gull/fiolett; Madera + Inter
 LAYOUT: storskjerm fyller hele flaten, mobil er én kolonne med store knapper
 */
-:root{--dfont:Unbounded,Inter,sans-serif;--bg:#140b2e;--bg2:#21134a;--ink:#fff8ec;--mute:#c8bfe0;--gold:#f6d488;--line:rgba(255,255,255,.14);
+@font-face{font-family:Madera;src:url(madera-bold.woff2) format('woff2');font-weight:600 900;font-display:swap}
+:root{--dfont:Madera,Inter,sans-serif;--bg:#140b2e;--bg2:#21134a;--ink:#fff8ec;--mute:#c8bfe0;--gold:#f6d488;--line:rgba(255,255,255,.14);
 --c0:#ff5d73;--c1:#1fbfa9;--c2:#f0a81e;--c3:#7a6bff;color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 html,body{height:100%}
@@ -153,7 +154,7 @@ const teamName = (g, t) => (g.team_names && g.team_names[t]) || '';
 const teamDot = t => `<span class="dot" style="background:${TEAM_COLORS[t % 8]}"></span>`;
 
 /* ---------- fyrverkeri ---------- */
-let FWFONT = 'Unbounded, Inter, sans-serif';
+let FWFONT = 'Madera, Inter, sans-serif';
 const fw = (() => {
   const c = document.getElementById('fw'), x = c.getContext('2d'); let parts = [], level = 0, last = 0;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -227,7 +228,7 @@ const music = (() => {
 const musicReady = music.load().catch(() => {});
 async function loadBrandFont(){
   const t = await tracks.get('font');
-  if(!t || !t.blob){ document.documentElement.style.removeProperty('--dfont'); FWFONT = 'Unbounded, Inter, sans-serif'; return null; }
+  if(!t || !t.blob){ document.documentElement.style.removeProperty('--dfont'); FWFONT = 'Madera, Inter, sans-serif'; return null; }
   try{ const f = new FontFace('Egenskrift', await t.blob.arrayBuffer()); await f.load(); document.fonts.add(f);
     if(location.hash === '#vert'){ document.documentElement.style.setProperty('--dfont', 'Egenskrift, Inter, sans-serif'); FWFONT = 'Egenskrift, Inter, sans-serif'; }
     return t.name; }catch(e){ return null; }
@@ -680,7 +681,7 @@ function route(){
   clearInterval(H.poll); clearInterval(P.poll);
   fsBtn.hidden = location.hash !== '#vert' || !document.documentElement.requestFullscreen;
   if(location.hash === '#vert' && fontName){ document.documentElement.style.setProperty('--dfont', 'Egenskrift, Inter, sans-serif'); FWFONT = 'Egenskrift, Inter, sans-serif'; }
-  if(location.hash !== '#vert'){ document.documentElement.style.removeProperty('--dfont'); FWFONT = 'Unbounded, Inter, sans-serif'; }
+  if(location.hash !== '#vert'){ document.documentElement.style.removeProperty('--dfont'); FWFONT = 'Madera, Inter, sans-serif'; }
   muBtn.hidden = location.hash !== '#vert'; if(location.hash !== '#vert') music.set(null);
   if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; hostLogin(); }
   else if(location.hash === '#rediger'){ document.title = 'Nyttårsquiz · redigering'; editLogin(); }
