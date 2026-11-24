@@ -159,18 +159,22 @@ const fw = (() => {
   const size = () => { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; };
   size(); addEventListener('resize', size);
   const cols = ['#f6d488','#ff5d73','#1fbfa9','#7a6bff','#ffffff'];
+  const SYMS = ['+','−','×','÷','=','%','+','−','kr','∑'];
   function burst(){
     const cx = c.width * (0.15 + Math.random() * 0.7), cy = c.height * (0.12 + Math.random() * 0.4);
-    const col = cols[Math.floor(Math.random() * cols.length)], n = 60;
+    const col = cols[Math.floor(Math.random() * cols.length)], n = 34;
     for(let i = 0; i < n; i++){ const a = i / n * Math.PI * 2, v = (1.5 + Math.random() * 2.5) * devicePixelRatio;
-      parts.push({x:cx, y:cy, vx:Math.cos(a) * v, vy:Math.sin(a) * v, life:1, col}); }
+      parts.push({x:cx, y:cy, vx:Math.cos(a) * v, vy:Math.sin(a) * v, life:1, col,
+        ch: SYMS[Math.floor(Math.random() * SYMS.length)], r: Math.random() * 6, vr: (Math.random() - .5) * .12}); }
   }
   function tick(t){
     x.clearRect(0, 0, c.width, c.height);
+    x.font = `800 ${Math.round(21 * devicePixelRatio)}px Unbounded, Inter, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
     if(level && !reduce && t - last > (level > 1 ? 450 : 2600)){ burst(); last = t; }
     parts = parts.filter(p => p.life > 0);
     for(const p of parts){ p.x += p.vx; p.y += p.vy; p.vy += 0.03 * devicePixelRatio; p.vx *= .985; p.life -= .011;
-      x.globalAlpha = Math.max(0, p.life); x.fillStyle = p.col; x.beginPath(); x.arc(p.x, p.y, 2.2 * devicePixelRatio, 0, 7); x.fill(); }
+      p.r += p.vr; x.globalAlpha = Math.max(0, p.life); x.fillStyle = p.col;
+      x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillText(p.ch, 0, 0); x.restore(); }
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
