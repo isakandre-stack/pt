@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#140b2e">
+<title>Nyttårsquiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: festlig, stor og tydelig, lesbar fra bakerste bord
+IDEA: et nyttårsfyrverkeri over byen ved midnatt
+PICTURE: fyrverkeri i bakgrunnen, store fargede svarknapper med egne symboler
+COLOUR and TYPE: midnatt #140b2e, champagne #f6d488, svar i korall/turkis/gull/fiolett; Unbounded + Inter
+LAYOUT: storskjerm fyller hele flaten, mobil er én kolonne med store knapper
+*/
+:root{--bg:#140b2e;--bg2:#21134a;--ink:#fff8ec;--mute:#c8bfe0;--gold:#f6d488;--line:rgba(255,255,255,.14);
+--c0:#ff5d73;--c1:#1fbfa9;--c2:#f0a81e;--c3:#7a6bff;color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(120% 80% at 50% 0%,#2a1760 0%,var(--bg) 60%) fixed;color:var(--ink);font:17px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+#fw{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+#app{position:relative;z-index:1;min-height:100%}
+h1,h2,h3,.disp{font-family:Unbounded,Inter,sans-serif;font-weight:800;line-height:1.08;margin:0;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:14px;min-height:48px;padding:10px 20px;font-weight:700;background:var(--gold);color:#1b0f3a;transition:transform .08s}
+button:active{transform:scale(.97)}
+button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+input,select,textarea{background:rgba(255,255,255,.08);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;width:100%}
+textarea{resize:vertical;min-height:70px}
+label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
+.err{color:#ffb3bd;min-height:1.5em;font-size:15px}
+.mute{color:var(--mute)}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.1);font-weight:600}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+/* ---------- mobil ---------- */
+.phone{max-width:520px;margin:0 auto;padding:24px 18px 40px;min-height:100vh;display:flex;flex-direction:column;gap:18px}
+.phone .top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px}
+.card{background:rgba(20,10,50,.72);border:1px solid var(--line);border-radius:22px;padding:22px;backdrop-filter:blur(6px)}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.big{font-size:clamp(40px,12vw,64px)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.opt{border-radius:20px;min-height:120px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:14px;color:#fff;text-align:left;font-size:17px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18)}
+.opt svg{width:30px;height:30px;fill:#fff}
+.o0{background:var(--c0)}.o1{background:var(--c1)}.o2{background:var(--c2)}.o3{background:var(--c3)}
+.bar{height:8px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold);width:100%;transform-origin:left}
+.wagers{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.wagers button{min-height:64px;font-size:20px}
+.wagers .all{grid-column:1/-1;background:var(--c0);color:#fff}
+.good{color:#7ff0c9}.bad{color:#ffb3bd}
+/* ---------- storskjerm ---------- */
+.stage{min-height:100vh;display:flex;flex-direction:column;padding:clamp(18px,3vw,44px);gap:clamp(14px,2vw,28px)}
+.stage .head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.stage .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:auto}
+.lobby{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,3vw,48px);align-items:start;flex:1}
+.joinbox{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.qr{background:#fff;border-radius:22px;padding:14px;width:min(300px,38vw);aspect-ratio:1}
+.qr svg,.qr img{width:100%;height:100%;display:block}
+.code{font-family:Unbounded;font-weight:800;font-size:clamp(64px,9vw,150px);letter-spacing:.06em;color:var(--gold);line-height:1}
+.url{font-size:clamp(16px,1.6vw,24px);word-break:break-all}
+.names{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;max-height:52vh;overflow:auto}
+.names .chip{font-size:clamp(15px,1.4vw,20px);animation:pop .35s ease-out both}
+.names .chip button{all:unset;cursor:pointer;opacity:.5;padding:0 2px}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+.qtext{font-size:clamp(30px,4.2vw,64px);text-align:center;max-width:24ch;margin:0 auto}
+.qimg{max-height:38vh;max-width:100%;border-radius:18px;margin:0 auto;display:block;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.sopts{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,20px)}
+.sopt{min-height:clamp(70px,13vh,150px);border-radius:22px;padding:clamp(14px,1.6vw,26px);display:flex;align-items:center;gap:18px;font-size:clamp(20px,2.3vw,36px);font-weight:700;color:#fff;position:relative;overflow:hidden;box-shadow:inset 0 -8px 0 rgba(0,0,0,.18)}
+.sopt svg{width:clamp(30px,3vw,48px);height:clamp(30px,3vw,48px);fill:#fff;flex:none}
+.sopt .cnt{margin-left:auto;font-family:Unbounded;font-size:.9em}
+.sopt.dim{opacity:.28}
+.sopt.win{outline:5px solid #fff;outline-offset:-5px}
+.sopt .fill{position:absolute;inset:0;background:rgba(255,255,255,.18);transform-origin:left;transition:transform .8s ease-out}
+.sopt>*:not(.fill){position:relative}
+.ring{width:clamp(70px,7vw,110px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-family:Unbounded;font-weight:800;font-size:clamp(26px,2.6vw,42px);background:conic-gradient(var(--gold) var(--p,100%),rgba(255,255,255,.12) 0)}
+.ring span{width:78%;aspect-ratio:1;border-radius:50%;background:var(--bg);display:grid;place-items:center}
+.lb{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(20px,3vw,48px);flex:1}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:10px 18px;border-radius:14px;background:rgba(255,255,255,.07);font-size:clamp(17px,1.6vw,26px)}
+.row .n{font-family:Unbounded;color:var(--gold)}
+.row .d{color:#7ff0c9;font-size:.8em;white-space:nowrap}
+.row b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.tbar{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:12px;align-items:center;font-size:clamp(16px,1.4vw,22px)}
+.tbar .track{height:26px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}
+.tbar .track i{display:block;height:100%;border-radius:9px;transition:width .8s}
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:clamp(10px,2vw,28px);max-width:1000px;margin:0 auto;width:100%}
+.pod{text-align:center;display:flex;flex-direction:column;gap:10px}
+.pod .blk{border-radius:20px 20px 0 0;background:linear-gradient(180deg,var(--gold),#c79a3c);color:#1b0f3a;font-family:Unbounded;font-weight:800;font-size:clamp(36px,5vw,80px);display:grid;place-items:center}
+.pod .nm{font-size:clamp(18px,2vw,32px);font-weight:700;overflow-wrap:anywhere}
+.finalists{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.fcard{border-radius:20px;padding:22px;background:rgba(255,255,255,.08);border:1.5px solid var(--gold);text-align:center;font-size:clamp(18px,1.8vw,28px);font-weight:700}
+.fcard small{display:block;color:var(--mute);font-weight:600;font-size:.7em}
+.hint{font-size:14px;color:var(--mute)}
+/* ---------- redigering ---------- */
+.ed{max-width:960px;margin:0 auto;padding:24px 18px 120px;display:flex;flex-direction:column;gap:20px}
+.round{border:1px solid var(--line);border-radius:22px;padding:20px;background:rgba(20,10,50,.7);display:flex;flex-direction:column;gap:14px}
+.rhead{display:grid;grid-template-columns:minmax(0,1fr) 190px auto;gap:12px;align-items:end}
+.q{border-radius:16px;background:rgba(255,255,255,.05);padding:16px;display:flex;flex-direction:column;gap:12px}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qopt{display:flex;gap:8px;align-items:center;border-radius:12px;padding:4px 4px 4px 12px}
+.qopt input[type=text]{background:rgba(0,0,0,.18);border:0}
+.qopt input[type=radio]{width:24px;height:24px;flex:none;accent-color:#fff}
+.qtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qtools button{min-height:40px;padding:6px 14px;font-size:14px}
+.qtools select{width:auto;padding:8px 10px}
+.thumb{max-height:110px;border-radius:10px}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:rgba(14,7,34,.94);border-top:1px solid var(--line);padding:12px 18px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap}
+.warn{color:#ffd58a;font-size:14px}
+@media(max-width:820px){.lobby,.lb{grid-template-columns:1fr}.qr{width:min(240px,60vw)}}
+@media(max-width:600px){.rhead{grid-template-columns:1fr}.qopts{grid-template-columns:1fr}.sopts{grid-template-columns:1fr}.opt{min-height:96px}}
+@media(prefers-reduced-motion:reduce){.names .chip{animation:none}.sopt .fill,.tbar .track i{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="fw"></canvas>
+<div id="app"><div class="phone"><p class="mute">Laster…</p></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+{
+const SB_URL = 'https://lvhlslkiaazuytezajsw.supabase.co';
+const SB_KEY = 'sb_publishable_FsGNBrVWfEYf4O0a6A3dTw_DiW7YITe';
+const SET_ID = 'ad99e835-b680-497f-8557-1e261c6601c5';
+const TEAM_NAMES = ['Champagne','Raketter','Konfetti','Stjerneskudd','Midnatt','Glitter','Bobler','Nordlys'];
+const TEAM_COLORS = ['#f6d488','#ff5d73','#1fbfa9','#7a6bff','#5ab0ff','#ff9a3c','#e86bd8','#8be36b'];
+const SHAPES = [
+  '<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>',
+  '<svg viewBox="0 0 24 24"><path d="M14.5 2.5a9.5 9.5 0 1 0 7 15.8A8 8 0 0 1 14.5 2.5z"/></svg>',
+  '<svg viewBox="0 0 24 24"><path d="M12 1.5l9.5 10.5L12 22.5 2.5 12z"/></svg>',
+  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/></svg>'];
+
+const sb = supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:false}});
+const app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('nb-NO');
+const ls = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+async function rpc(fn, args){const {data, error} = await sb.rpc(fn, args); if(error) throw new Error(error.message); return data;}
+let offset = 0; const now = () => Date.now() + offset;
+const syncClock = s => { if(s) offset = new Date(s).getTime() - Date.now(); };
+const left = iso => iso ? Math.max(0, (new Date(iso).getTime() - now()) / 1000) : 0;
+const teamName = (g, t) => (g.team_names && g.team_names[t]) || '';
+const teamDot = t => `<span class="dot" style="background:${TEAM_COLORS[t % 8]}"></span>`;
+
+/* ---------- fyrverkeri ---------- */
+const fw = (() => {
+  const c = document.getElementById('fw'), x = c.getContext('2d'); let parts = [], level = 0, last = 0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const size = () => { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; };
+  size(); addEventListener('resize', size);
+  const cols = ['#f6d488','#ff5d73','#1fbfa9','#7a6bff','#ffffff'];
+  function burst(){
+    const cx = c.width * (0.15 + Math.random() * 0.7), cy = c.height * (0.12 + Math.random() * 0.4);
+    const col = cols[Math.floor(Math.random() * cols.length)], n = 60;
+    for(let i = 0; i < n; i++){ const a = i / n * Math.PI * 2, v = (1.5 + Math.random() * 2.5) * devicePixelRatio;
+      parts.push({x:cx, y:cy, vx:Math.cos(a) * v, vy:Math.sin(a) * v, life:1, col}); }
+  }
+  function tick(t){
+    x.clearRect(0, 0, c.width, c.height);
+    if(level && !reduce && t - last > (level > 1 ? 450 : 2600)){ burst(); last = t; }
+    parts = parts.filter(p => p.life > 0);
+    for(const p of parts){ p.x += p.vx; p.y += p.vy; p.vy += 0.03 * devicePixelRatio; p.vx *= .985; p.life -= .011;
+      x.globalAlpha = Math.max(0, p.life); x.fillStyle = p.col; x.beginPath(); x.arc(p.x, p.y, 2.2 * devicePixelRatio, 0, 7); x.fill(); }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  return { set(l){ level = l; }, burst(){ if(!reduce) burst(); } };
+})();
+
+/* ---------- lyd på storskjermen ---------- */
+let actx = null;
+function beep(f, d = .12, type = 'sine', vol = .15){ try{ actx = actx || new AudioContext();
+  const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + d);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + d); }catch(e){} }
+const chime = () => [660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, .35, 'triangle'), i * 110));
+
+/* =========================================================
+   SPILLER (mobil)
+   ========================================================= */
+const P = { s: ls.get('nq_player'), data: null, key: '', chan: null, poll: null, busy: false };
+
+function playerJoin(msg){
+  fw.set(1);
+  const k = new URLSearchParams(location.search).get('k') || '';
+  app.innerHTML = `<div class="phone">
+    <div class="center" style="margin-top:6vh"><span class="chip">Nyttårsbordet 2026</span>
+      <h1 class="big">Nyttårs&shy;quiz</h1><p class="mute">Skriv inn koden fra storskjermen og navnet ditt.</p></div>
+    <form class="card" id="jf" style="display:flex;flex-direction:column;gap:14px">
+      <div><label for="jcode">Spillkode</label><input id="jcode" inputmode="numeric" autocomplete="off" maxlength="4" value="${esc(k)}" placeholder="1234" style="font-size:28px;letter-spacing:.2em;text-align:center"></div>
+      <div><label for="jname">Navnet ditt</label><input id="jname" maxlength="20" autocomplete="nickname" placeholder="F.eks. Kari H."></div>
+      <div class="err" id="jerr">${esc(msg || '')}</div>
+      <button type="submit" style="min-height:58px;font-size:19px">Bli med</button>
+    </form></div>`;
+  const f = document.getElementById('jf');
+  document.getElementById(k ? 'jname' : 'jcode').focus();
+  f.addEventListener('submit', async e => {
+    e.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
+    try{
+      const r = await rpc('quiz_join', {p_code: document.getElementById('jcode').value, p_name: document.getElementById('jname').value});
+      P.s = {pid: r.player_id, token: r.token}; ls.set('nq_player', P.s); startPlayer();
+    }catch(err){ document.getElementById('jerr').textContent = err.message; b.disabled = false; }
+  });
+}
+
+function startPlayer(){
+  fw.set(0);
+  if(P.chan) sb.removeChannel(P.chan);
+  clearInterval(P.poll); P.poll = setInterval(refreshPlayer, 2500);
+  refreshPlayer(true);
+}
+async function refreshPlayer(first){
+  if(P.busy) return; P.busy = true;
+  try{
+    const d = await rpc('quiz_me', {p_player: P.s.pid, p_token: P.s.token});
+    const k = new URLSearchParams(location.search).get('k');
+    if(first && ((k && k !== d.game.code) || d.game.status === 'ended')) throw new Error('nytt spill');
+    syncClock(d.server_now); P.data = d;
+    if(first || !P.chan){
+      P.chan = sb.channel('g-' + d.game.id).on('postgres_changes', {event:'UPDATE', schema:'public', table:'quiz_games', filter:'id=eq.' + d.game.id}, () => setTimeout(refreshPlayer, 50)).subscribe();
+    }
+    renderPlayer();
+  }catch(e){
+    if(first){ ls.del('nq_player'); clearInterval(P.poll); playerJoin(); }
+  }finally{ P.busy = false; }
+}
+
+function renderPlayer(){
+  const {game: g, me, answer: a} = P.data;
+  const key = [g.status, g.q_index, a && a.choice, a && a.wager, me.kicked, me.score].join('|');
+  if(key === P.key) return; P.key = key;
+  const q = g.q || {};
+  const top = `<div class="top"><span class="chip">${teamDot(me.team)}${esc(me.name)}</span><span class="mute">${fmt(me.score)} poeng</span></div>`;
+  const isFinale = q.kind === 'finale';
+  const out = !me.finalist && isFinale && (g.status === 'wager' || g.status === 'question');
+  let body = '';
+  fw.set(0);
+  if(me.kicked){ body = `<div class="card center"><h2>Du er tatt ut av spillet</h2><p class="mute">Snakk med den som styrer quizen.</p></div>`; clearInterval(P.poll); }
+  else if(g.status === 'lobby'){
+    body = `<div class="card center" style="margin-top:8vh"><h2 class="big">Du er med!</h2>
+      ${teamName(g, me.team) ? `<span class="chip">${teamDot(me.team)}Lag ${esc(teamName(g, me.team))}</span>` : ''}
+      <p class="mute">Følg med på storskjermen. Quizen starter snart.</p></div>`;
+  } else if(out){
+    body = `<div class="card center" style="margin-top:8vh"><h2>Finalen er i gang</h2><p class="mute">Bare topp 5 spiller nå. Hei på favoritten din!</p></div>`;
+  } else if(g.status === 'wager'){
+    const max = isFinale ? me.score : Math.max(me.score, 500);
+    if(a && a.wager != null){
+      body = `<div class="card center" style="margin-top:6vh"><span class="chip">${esc(q.round_title)}</span><h2>Du satser</h2><div class="big disp" style="color:var(--gold)">${fmt(a.wager)}</div><p class="mute">Spørsmålet kommer straks. Du kan endre innsatsen til tiden er ute.</p><button class="ghost" id="chg">Endre innsats</button></div>`;
+    } else {
+      const opts = [100, 250, 500, 1000].filter(v => v < max);
+      body = `<div class="card center"><span class="chip">${esc(q.round_title)}</span>
+        <h2>Hvor mye tør du satse?</h2>
+        <p class="mute">Riktig svar gir deg innsatsen. Feil svar trekker den fra.${isFinale ? ' Dette er finalen: du kan satse alt.' : ''}</p>
+        <div class="bar"><i id="tb"></i></div>
+        <div class="wagers">${opts.map(v => `<button data-w="${v}">${fmt(v)}</button>`).join('')}
+          <button class="all" data-w="${max}">Alt eller ingenting · ${fmt(max)}</button></div></div>`;
+    }
+  } else if(g.status === 'question'){
+    if(a && a.choice != null){
+      body = `<div class="card center" style="margin-top:8vh"><div class="opt o${a.choice}" style="min-height:0;width:84px;height:84px;align-items:center;justify-content:center">${SHAPES[a.choice]}</div><h2>Svar sendt!</h2><p class="mute">${a.wager != null ? 'Innsats ' + fmt(a.wager) + '. ' : ''}Følg med på storskjermen.</p></div>`;
+    } else {
+      body = `<div><div class="mute" style="font-size:14px;margin-bottom:6px">${esc(q.round_title)} · ${q.q_no}/${q.round_len}</div>
+        <h3 style="font-size:21px">${esc(q.text)}</h3></div><div class="bar"><i id="tb"></i></div>
+        <div class="opts">${(q.options || []).map((o, i) => `<button class="opt o${i}" data-c="${i}">${SHAPES[i]}<span>${esc(o)}</span></button>`).join('')}</div>`;
+    }
+  } else if(g.status === 'reveal'){
+    const r = g.reveal || {}; const pts = a && a.points;
+    const right = a && a.choice != null && a.choice === r.correct;
+    const txt = !a || a.choice == null ? 'Ingen svar' : right ? 'Riktig!' : 'Feil';
+    if(right) fw.burst();
+    body = `<div class="card center" style="margin-top:6vh">
+      <h2 class="big ${right ? 'good' : 'bad'}">${txt}</h2>
+      <div class="disp" style="font-size:34px">${pts ? (pts > 0 ? '+' : '') + fmt(pts) : '+0'}</div>
+      <p>Riktig svar: <b>${esc((q.options || [])[r.correct])}</b></p>
+      <p class="mute">Du ligger på plass ${me.rank} av ${me.total}</p></div>`;
+  } else if(g.status === 'leaderboard'){
+    body = `<div class="card center" style="margin-top:8vh"><p class="mute">Du ligger på plass</p><div class="big disp" style="color:var(--gold)">${me.rank}</div><p class="mute">av ${me.total} spillere · ${fmt(me.score)} poeng</p></div>`;
+  } else if(g.status === 'finale_intro'){
+    body = me.finalist ? `<div class="card center" style="margin-top:8vh"><h2 class="big" style="color:var(--gold)">Du er i finalen!</h2><p>Du kan satse så mye du vil av poengene dine på ett siste spørsmål.</p></div>`
+      : `<div class="card center" style="margin-top:8vh"><h2>Topp 5 går til finalen</h2><p class="mute">Du endte på plass ${me.rank}. Hei på finalistene!</p></div>`;
+  } else if(g.status === 'ended'){
+    fw.set(me.rank <= 3 ? 2 : 1);
+    body = `<div class="card center" style="margin-top:6vh"><span class="chip">Godt nyttår!</span><p class="mute">Du ble nummer</p><div class="big disp" style="color:var(--gold)">${me.rank}</div><p>${fmt(me.score)} poeng</p><button class="ghost" id="again">Bli med i et nytt spill</button></div>`;
+    clearInterval(P.poll);
+  }
+  app.innerHTML = `<div class="phone">${top}${body}</div>`;
+  app.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', async () => {
+    app.querySelectorAll('[data-w]').forEach(x => x.disabled = true);
+    try{ await rpc('quiz_wager', {p_player: P.s.pid, p_token: P.s.token, p_q: g.q_index, p_wager: +b.dataset.w}); }catch(e){}
+    P.key = ''; refreshPlayer();
+  }));
+  app.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', async () => {
+    app.querySelectorAll('[data-c]').forEach(x => x.disabled = true); b.style.outline = '4px solid #fff';
+    if(navigator.vibrate) navigator.vibrate(30);
+    try{ await rpc('quiz_answer', {p_player: P.s.pid, p_token: P.s.token, p_q: g.q_index, p_choice: +b.dataset.c}); }catch(e){}
+    P.key = ''; refreshPlayer();
+  }));
+  const chg = document.getElementById('chg');
+  if(chg) chg.addEventListener('click', () => { P.data.answer.wager = null; P.key = ''; renderPlayer(); });
+  const again = document.getElementById('again');
+  if(again) again.addEventListener('click', () => { ls.del('nq_player'); P.s = null; history.replaceState(null, '', location.pathname); playerJoin(); });
+}
+(function timerLoop(){
+  const tb = document.getElementById('tb');
+  if(tb && P.data){ const g = P.data.game; const total = g.status === 'wager' ? 15 : ((g.q || {}).time || 20);
+    tb.style.transform = `scaleX(${Math.min(1, left(g.q_ends_at) / total)})`; }
+  requestAnimationFrame(timerLoop);
+})();
+
+/* =========================================================
+   STORSKJERM (vert)
+   ========================================================= */
+const H = { s: ls.get('nq_host'), qs: null, st: null, key: '', poll: null, advancing: false, lastSec: null };
+const playerUrl = () => location.origin + location.pathname;
+
+function hostLogin(msg){
+  fw.set(1);
+  const pin = (H.s && H.s.pin) || '';
+  app.innerHTML = `<div class="phone"><div class="center" style="margin-top:8vh"><span class="chip">Storskjerm</span><h1 class="big">Nyttårs&shy;quiz</h1></div>
+    <form class="card" id="hf" style="display:flex;flex-direction:column;gap:14px">
+      <div><label for="hpin">PIN</label><input id="hpin" type="password" inputmode="numeric" value="${esc(pin)}"></div>
+      <div><label for="hteams">Antall lag</label><select id="hteams">${[0,2,3,4,5,6,7,8].map(n => `<option value="${n}" ${n === 5 ? 'selected' : ''}>${n ? n + ' lag' : 'Ingen lag'}</option>`).join('')}</select></div>
+      <div class="err" id="herr">${esc(msg || '')}</div>
+      <button type="submit" style="min-height:56px">Start nytt spill</button>
+      ${H.s && H.s.gid ? `<button type="button" class="ghost" id="resume">Fortsett forrige spill</button>` : ''}
+      <p class="hint">Vis denne siden på storskjermen. Spillerne går til <b>${esc(playerUrl())}</b>. Spørsmålene endrer du på <a href="#rediger" style="color:var(--gold)">redigeringssiden</a>.</p>
+    </form></div>`;
+  document.getElementById('hf').addEventListener('submit', async e => {
+    e.preventDefault(); const pinv = document.getElementById('hpin').value, n = +document.getElementById('hteams').value;
+    try{ const r = await rpc('quiz_host_create', {p_set: SET_ID, p_pin: pinv, p_team_names: TEAM_NAMES.slice(0, n)});
+      H.s = {gid: r.game_id, pin: pinv}; ls.set('nq_host', H.s); startHost();
+    }catch(err){ document.getElementById('herr').textContent = err.message; }
+  });
+  const rs = document.getElementById('resume');
+  if(rs) rs.addEventListener('click', () => startHost());
+}
+
+async function startHost(){
+  try{ H.qs = await rpc('quiz_host_questions', {p_game: H.s.gid, p_pin: H.s.pin}); }
+  catch(e){ return hostLogin('Fant ikke spillet. Start et nytt.'); }
+  H.key = ''; clearInterval(H.poll); H.poll = setInterval(pollHost, 1000); pollHost();
+}
+async function pollHost(){
+  try{ const st = await rpc('quiz_host_status', {p_game: H.s.gid, p_pin: H.s.pin}); syncClock(st.server_now); H.st = st; renderHost(); autoAdvance(); }catch(e){}
+}
+async function hostNext(){
+  if(H.advancing) return; H.advancing = true;
+  try{ await rpc('quiz_host_next', {p_game: H.s.gid, p_pin: H.s.pin}); await pollHost(); }catch(e){}
+  H.advancing = false;
+}
+function eligible(){ const g = H.st.game, q = g.q_public || {};
+  return q.kind === 'finale' ? (g.finalists || []).length : H.st.players.length; }
+function autoAdvance(){
+  if(!H.st) return; const g = H.st.game, n = eligible(), k = g.status + '|' + g.q_index;
+  if(H.autoFired === k) return;
+  if((g.status === 'question' || g.status === 'wager') && (left(g.q_ends_at) <= 0 || (n > 0 && (g.status === 'question' ? H.st.answered : H.st.wagered) >= n))){
+    H.autoFired = k; setTimeout(hostNext, g.status === 'wager' ? 800 : 500);
+  }
+}
+
+function teamTable(g, players){
+  const t = (g.team_names || []).map((name, i) => { const m = players.filter(p => p.team === i);
+    return {i, name, n: m.length, avg: m.length ? Math.round(m.reduce((s, p) => s + p.score, 0) / m.length) : 0}; });
+  return t.sort((a, b) => b.avg - a.avg);
+}
+function teamBars(g, players){
+  const t = teamTable(g, players); if(!t.length) return '';
+  const max = Math.max(1, ...t.map(x => x.avg));
+  return `<div class="rows"><h3 style="font-size:clamp(18px,1.6vw,26px);margin-bottom:6px">Lagene <span class="hint">snittpoeng</span></h3>${t.map(x => `<div class="tbar"><span>${teamDot(x.i)} ${esc(x.name)}</span><div class="track"><i style="width:${x.avg / max * 100}%;background:${TEAM_COLORS[x.i % 8]}"></i></div><b>${fmt(x.avg)}</b></div>`).join('')}</div>`;
+}
+
+function renderHost(){
+  const {game: g, players} = H.st; const q = g.q_public || {}; const full = H.qs[g.q_index] || {};
+  const key = [g.status, g.q_index].join('|');
+  const nextBtn = label => `<button id="next" style="min-height:56px;font-size:19px;padding:12px 30px">${label} →</button>`;
+  if(key !== H.key){
+    H.key = key; H.lastSec = null;
+    let html = '';
+    fw.set(0);
+    if(g.status === 'lobby'){
+      fw.set(1);
+      const qr = qrcode(0, 'M'); qr.addData(playerUrl() + '?k=' + g.code); qr.make();
+      html = `<div class="stage"><div class="head"><h1 style="font-size:clamp(34px,4vw,64px)">${esc(g.title)}</h1><span class="chip" id="pc"></span></div>
+        <div class="lobby"><div style="display:flex;flex-direction:column;gap:22px">
+          <div class="joinbox"><div class="qr">${qr.createSvgTag({cellSize: 6, margin: 0, scalable: true})}</div>
+            <div><p class="mute" style="margin:0 0 6px;font-size:clamp(16px,1.4vw,22px)">Skann eller gå til</p><div class="url">${esc(playerUrl())}</div>
+              <p class="mute" style="margin:18px 0 4px;font-size:clamp(16px,1.4vw,22px)">Kode</p><div class="code">${esc(g.code)}</div></div></div>
+          <div id="teams"></div></div>
+          <div><div class="names" id="names"></div><p class="hint" id="kickhint"></p></div></div>
+        <div class="foot"><span class="hint">${H.qs.length} spørsmål · trykk mellomrom eller knappen for å gå videre</span>${nextBtn('Start quizen')}</div></div>`;
+    } else if(g.status === 'wager'){
+      html = `<div class="stage"><div class="head"><span class="chip">${esc(q.round_title)} · ${q.q_no}/${q.round_len}</span><div class="ring" id="ring"><span id="sec"></span></div></div>
+        <div class="center" style="margin:auto;max-width:900px"><h1 style="font-size:clamp(44px,6vw,96px);color:var(--gold)">${q.kind === 'finale' ? 'Finalen' : 'Innsatsrunde'}</h1>
+          <p style="font-size:clamp(20px,2vw,32px)">${q.kind === 'finale' ? 'Finalistene satser så mye de tør av poengene sine.' : 'Sats poeng på mobilen før du ser spørsmålet.'}<br><span class="mute">Riktig svar gir innsatsen. Feil svar trekker den fra.</span></p>
+          <div class="disp" style="font-size:clamp(26px,2.6vw,40px)"><span id="cnt"></span></div></div>
+        <div class="foot"><span></span>${nextBtn('Vis spørsmålet')}</div></div>`;
+    } else if(g.status === 'question' || g.status === 'reveal'){
+      const rv = g.reveal; const total = rv ? Math.max(1, rv.answered) : 1;
+      html = `<div class="stage"><div class="head"><span class="chip">${esc(q.round_title)} · ${q.q_no}/${q.round_len}${q.kind === 'wager' ? ' · innsats' : ''}${q.kind === 'finale' ? ' · finale' : ''}</span>
+          ${rv ? `<span class="chip">${fmt(rv.answered)} svarte</span>` : `<div style="display:flex;gap:16px;align-items:center"><span class="disp" style="font-size:clamp(20px,2vw,30px)" id="cnt"></span><div class="ring" id="ring"><span id="sec"></span></div></div>`}</div>
+        <h2 class="qtext">${esc(full.text)}</h2>
+        ${full.image ? `<img class="qimg" src="${esc(full.image)}" alt="">` : ''}
+        <div class="sopts" style="margin-top:auto">${(full.options || []).map((o, i) => {
+          const c = rv ? rv.counts[i] || 0 : 0;
+          return `<div class="sopt o${i} ${rv ? (i === rv.correct ? 'win' : 'dim') : ''}">${rv ? `<span class="fill" style="transform:scaleX(${c / total})"></span>` : ''}${SHAPES[i]}<span>${esc(o)}</span>${rv ? `<span class="cnt">${c}</span>` : ''}</div>`; }).join('')}</div>
+        <div class="foot"><span class="hint">${g.status === 'question' ? 'Går automatisk videre når tiden er ute eller alle har svart' : ''}</span>${nextBtn(g.status === 'question' ? 'Vis svaret' : (g.q_index + 1 >= g.q_count ? 'Se vinneren' : 'Vis stillingen'))}</div></div>`;
+      if(rv) chime();
+    } else if(g.status === 'leaderboard'){
+      const nq = H.qs[g.q_index + 1] || {};
+      const newRound = nq.round_no !== full.round_no;
+      html = `<div class="stage"><div class="head"><h1 style="font-size:clamp(32px,3.6vw,58px)">Stillingen</h1><span class="chip">${g.q_index + 1} av ${g.q_count} spørsmål</span></div>
+        <div class="lb"><div class="rows">${players.slice(0, 10).map((p, i) => `<div class="row"><span class="n">${i + 1}</span><span style="display:flex;gap:10px;align-items:center;overflow:hidden">${g.team_names.length ? teamDot(p.team) : ''}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span></span><span class="d ${p.last_delta < 0 ? 'bad' : ''}">${p.last_delta ? (p.last_delta > 0 ? '+' : '') + fmt(p.last_delta) : ''}</span><b>${fmt(p.score)}</b></div>`).join('')}</div>
+          <div>${teamBars(g, players)}</div></div>
+        <div class="foot"><span class="disp" style="font-size:clamp(18px,1.8vw,28px);color:var(--gold)">${newRound ? 'Neste runde: ' + esc(nq.round_title) : ''}</span>${nextBtn(newRound && nq.kind === 'finale' ? 'Til finalen' : 'Neste spørsmål')}</div></div>`;
+    } else if(g.status === 'finale_intro'){
+      fw.set(1);
+      const fin = (g.finalists || []).map(id => players.find(p => p.id === id)).filter(Boolean);
+      html = `<div class="stage"><div class="head"><h1 style="font-size:clamp(40px,5vw,84px);color:var(--gold)">Finalen</h1></div>
+        <p style="font-size:clamp(20px,2vw,30px);margin:0">Topp 5 får ett siste spørsmål. De satser så mye de vil av poengene sine. Alt kan snu nå.</p>
+        <div class="finalists">${fin.map((p, i) => `<div class="fcard"><small>Plass ${i + 1}</small>${esc(p.name)}<small>${fmt(p.score)} poeng</small></div>`).join('')}</div>
+        <div class="foot"><span></span>${nextBtn('Start finalen')}</div></div>`;
+    } else if(g.status === 'ended'){
+      fw.set(2); chime();
+      const [a, b, c] = players; const tt = teamTable(g, players)[0];
+      const pod = (p, h, n) => p ? `<div class="pod"><div class="nm">${esc(p.name)}</div><div class="mute">${fmt(p.score)}</div><div class="blk" style="height:${h}">${n}</div></div>` : '<div></div>';
+      html = `<div class="stage"><div class="head"><h1 style="font-size:clamp(36px,4.4vw,72px)">Godt nyttår!</h1>${tt ? `<span class="chip" style="font-size:clamp(16px,1.6vw,24px)">${teamDot(tt.i)} Vinnerlaget: ${esc(tt.name)}</span>` : ''}</div>
+        <div class="podium" style="margin-top:auto">${pod(b, '26vh', 2)}${pod(a, '36vh', 1)}${pod(c, '18vh', 3)}</div>
+        <div class="foot"><span class="hint">${players.length} spillere</span><button class="ghost" id="newgame">Nytt spill</button></div></div>`;
+    }
+    app.innerHTML = html;
+    const nb = document.getElementById('next'); if(nb) nb.addEventListener('click', hostNext);
+    const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
+  }
+  // levende deler
+  if(g.status === 'lobby'){
+    const pc = document.getElementById('pc'); if(pc) pc.textContent = players.length + (players.length === 1 ? ' spiller' : ' spillere');
+    const nm = document.getElementById('names');
+    if(nm && nm.dataset.k !== players.map(p => p.id).join()){
+      nm.dataset.k = players.map(p => p.id).join();
+      nm.innerHTML = players.slice().reverse().map(p => `<span class="chip">${g.team_names.length ? teamDot(p.team) : ''}${esc(p.name)}<button data-kick="${esc(p.id)}" title="Fjern" aria-label="Fjern ${esc(p.name)}">×</button></span>`).join('') || '<p class="mute">Venter på spillere…</p>';
+      nm.querySelectorAll('[data-kick]').forEach(b => b.addEventListener('click', () => {
+        if(b.dataset.sure){ rpc('quiz_host_kick', {p_game: H.s.gid, p_pin: H.s.pin, p_player: b.dataset.kick}).then(pollHost); }
+        else { b.dataset.sure = 1; b.textContent = 'fjern?'; b.style.opacity = 1; }
+      }));
+      const tm = document.getElementById('teams');
+      if(tm) tm.innerHTML = g.team_names.length ? `<div style="display:flex;gap:10px;flex-wrap:wrap">${g.team_names.map((t, i) => `<span class="chip">${teamDot(i)}${esc(t)} · ${players.filter(p => p.team === i).length}</span>`).join('')}</div>` : '';
+      if(players.length) beep(880, .08, 'triangle', .08);
+    }
+  }
+  const cnt = document.getElementById('cnt');
+  if(cnt) cnt.textContent = g.status === 'wager' ? `${H.st.wagered} av ${eligible()} har satset` : `${H.st.answered} av ${eligible()} har svart`;
+}
+(function hostTimer(){
+  if(H.st){ const g = H.st.game, ring = document.getElementById('ring'), sec = document.getElementById('sec');
+    if(ring && sec){ const total = g.status === 'wager' ? 15 : ((g.q_public || {}).time || 20), l = left(g.q_ends_at);
+      ring.style.setProperty('--p', (l / total * 100) + '%'); const s = Math.ceil(l); sec.textContent = s;
+      if(s !== H.lastSec){ H.lastSec = s; if(s > 0 && s <= 5) beep(s === 1 ? 990 : 660, .08, 'square', .06); }
+      if(l <= 0) autoAdvance(); } }
+  requestAnimationFrame(hostTimer);
+})();
+document.addEventListener('keydown', e => {
+  if(location.hash !== '#vert' || !H.st || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if(e.key === ' ' || e.key === 'ArrowRight'){ e.preventDefault(); if(H.st.game.status !== 'ended') hostNext(); }
+});
+
+/* =========================================================
+   REDIGERING
+   ========================================================= */
+const E = { pin: null, name: '', rounds: [], dirty: false, saving: false, timer: null };
+const KINDS = {normal: 'Vanlig runde', wager: 'Innsatsrunde', finale: 'Finale (topp 5)'};
+
+function editLogin(msg){
+  fw.set(0);
+  app.innerHTML = `<div class="phone"><div class="center" style="margin-top:8vh"><span class="chip">Redigering</span><h1 class="big">Spørsmål</h1></div>
+    <form class="card" id="ef" style="display:flex;flex-direction:column;gap:14px">
+      <div><label for="epin">PIN</label><input id="epin" type="password" inputmode="numeric" value="${esc((H.s && H.s.pin) || '')}"></div>
+      <div class="err" id="eerr">${esc(msg || '')}</div><button type="submit">Åpne</button></form></div>`;
+  document.getElementById('ef').addEventListener('submit', async e => {
+    e.preventDefault(); const pin = document.getElementById('epin').value;
+    try{ const d = await rpc('quiz_admin_get', {p_set: SET_ID, p_pin: pin}); E.pin = pin; E.name = d.name; E.rounds = d.rounds || []; renderEditor(); }
+    catch(err){ document.getElementById('eerr').textContent = err.message; }
+  });
+}
+const newQ = () => ({text: '', options: ['', '', '', ''], correct: 0, time: 20});
+function problems(){
+  const out = [];
+  E.rounds.forEach((r, ri) => r.questions.forEach((q, qi) => {
+    const opts = q.options.map(o => o.trim()).filter(Boolean);
+    if(!q.text.trim()) out.push(`Runde ${ri + 1}, spørsmål ${qi + 1} mangler tekst`);
+    else if(opts.length < 2) out.push(`Runde ${ri + 1}, spørsmål ${qi + 1} trenger minst to svar`);
+    else if(!(q.options[q.correct] || '').trim()) out.push(`Runde ${ri + 1}, spørsmål ${qi + 1}: riktig svar er tomt`);
+  }));
+  return out;
+}
+function cleaned(){
+  return E.rounds.map(r => ({title: r.title, kind: r.kind, questions: r.questions.map(q => {
+    const keep = q.options.map((o, i) => ({o: o.trim(), i})).filter(x => x.o);
+    const correct = Math.max(0, keep.findIndex(x => x.i === q.correct));
+    const out = {text: q.text.trim(), options: keep.map(x => x.o), correct, time: +q.time || 20};
+    if(q.image) out.image = q.image; return out; })})).filter(r => r.questions.length);
+}
+function renderEditor(){
+  const total = E.rounds.reduce((s, r) => s + r.questions.length, 0);
+  app.innerHTML = `<div class="ed">
+    <div style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><label for="qname">Navn på quizen</label><input id="qname" value="${esc(E.name)}" style="font-size:22px;font-weight:700"></div>
+      <a href="#vert" style="color:var(--gold)">Til storskjermen →</a></div>
+    <p class="hint">${total} spørsmål, omtrent ${Math.round(total * 50 / 60)} minutter spilletid. Endringer gjelder for nye spill. Spørsmål merket MAL er maler dere fyller inn selv.</p>
+    ${E.rounds.map((r, ri) => `<section class="round" data-r="${ri}">
+      <div class="rhead"><div><label>Runde ${ri + 1}</label><input data-f="title" value="${esc(r.title)}"></div>
+        <div><label>Type</label><select data-f="kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${r.kind === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+        <div class="qtools"><button class="ghost" data-a="rup" ${ri ? '' : 'disabled'}>↑</button><button class="ghost" data-a="rdel">Slett runde</button></div></div>
+      ${r.kind === 'wager' ? '<p class="hint">Alle satser poeng før de ser spørsmålet. Riktig gir innsatsen, feil trekker den.</p>' : ''}
+      ${r.kind === 'finale' ? '<p class="hint">Bare de fem beste spiller. De kan satse alt de har. Ett spørsmål holder.</p>' : ''}
+      ${r.questions.map((q, qi) => `<div class="q" data-q="${qi}">
+        <label>Spørsmål ${qi + 1}</label><textarea data-f="text" rows="2">${esc(q.text)}</textarea>
+        <div class="qopts">${[0, 1, 2, 3].map(i => `<label class="qopt o${i}" style="margin:0;color:#fff">
+          <input type="radio" name="c${ri}_${qi}" data-f="correct" value="${i}" ${q.correct === i ? 'checked' : ''} aria-label="Riktig svar">
+          <input type="text" data-f="opt" data-i="${i}" value="${esc(q.options[i] || '')}" placeholder="Svar ${i + 1}${i > 1 ? ' (valgfritt)' : ''}"></label>`).join('')}</div>
+        <div class="qtools"><span class="hint">Prikken markerer riktig svar ·</span>
+          <select data-f="time" aria-label="Tid">${[10, 15, 20, 30, 45].map(t => `<option value="${t}" ${+q.time === t ? 'selected' : ''}>${t} sek</option>`).join('')}</select>
+          <label class="ghost" style="margin:0;display:inline-flex;align-items:center;min-height:40px;padding:6px 14px;border:1.5px solid var(--line);border-radius:14px;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer">${q.image ? 'Bytt bilde' : 'Legg til bilde'}<input type="file" accept="image/*" data-f="image" hidden></label>
+          ${q.image ? '<button class="ghost" data-a="noimg">Fjern bilde</button>' : ''}
+          <button class="ghost" data-a="qup" ${qi ? '' : 'disabled'}>↑</button><button class="ghost" data-a="qdel">Slett</button></div>
+        ${q.image ? `<img class="thumb" src="${esc(q.image)}" alt="">` : ''}</div>`).join('')}
+      <div><button class="ghost" data-a="qadd">+ Nytt spørsmål</button></div></section>`).join('')}
+    <div><button class="ghost" id="radd">+ Ny runde</button></div></div>
+    <div class="savebar"><span class="warn" id="warn"></span><span class="hint" id="sstat">Lagret</span><button id="save">Lagre</button></div>`;
+  bindEditor(); showWarn();
+}
+function showWarn(){ const p = problems(); document.getElementById('warn').textContent = p.length ? p[0] + (p.length > 1 ? ` (+${p.length - 1} til)` : '') : ''; }
+function markDirty(){ E.dirty = true; document.getElementById('sstat').textContent = 'Ikke lagret'; showWarn(); clearTimeout(E.timer); E.timer = setTimeout(save, 2000); }
+async function save(){
+  if(E.saving) return; E.saving = true; const st = document.getElementById('sstat'); st.textContent = 'Lagrer…';
+  try{ await rpc('quiz_admin_save', {p_set: SET_ID, p_pin: E.pin, p_name: E.name, p_rounds: cleaned()}); E.dirty = false; st.textContent = 'Lagret ' + new Date().toLocaleTimeString('nb-NO', {hour: '2-digit', minute: '2-digit'}); }
+  catch(e){ st.textContent = 'Kunne ikke lagre: ' + e.message; }
+  E.saving = false;
+}
+function resize(file){ return new Promise((res, rej) => { const img = new Image(); img.onload = () => {
+  const s = Math.min(1, 900 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+  c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(img.src); res(c.toDataURL('image/jpeg', .72)); }; img.onerror = rej; img.src = URL.createObjectURL(file); }); }
+function bindEditor(){
+  document.getElementById('qname').addEventListener('input', e => { E.name = e.target.value; markDirty(); });
+  document.getElementById('save').addEventListener('click', save);
+  document.getElementById('radd').addEventListener('click', () => { E.rounds.push({title: 'Ny runde', kind: 'normal', questions: [newQ()]}); markDirty(); renderEditor(); });
+  app.querySelectorAll('.round').forEach(sec => {
+    const r = E.rounds[+sec.dataset.r];
+    sec.querySelector('.rhead [data-f=title]').addEventListener('input', e => { r.title = e.target.value; markDirty(); });
+    sec.querySelector('.rhead [data-f=kind]').addEventListener('change', e => { r.kind = e.target.value; markDirty(); renderEditor(); });
+    sec.querySelectorAll(':scope > [data-a], .rhead [data-a], :scope > div > [data-a=qadd]').forEach(b => b.addEventListener('click', () => {
+      const i = +sec.dataset.r;
+      if(b.dataset.a === 'rup'){ [E.rounds[i - 1], E.rounds[i]] = [E.rounds[i], E.rounds[i - 1]]; }
+      if(b.dataset.a === 'rdel'){ if(!b.dataset.sure){ b.dataset.sure = 1; b.textContent = 'Sikker?'; return; } E.rounds.splice(i, 1); }
+      if(b.dataset.a === 'qadd') r.questions.push(newQ());
+      markDirty(); renderEditor();
+    }));
+    sec.querySelectorAll('.q').forEach(qe => {
+      const qi = +qe.dataset.q, q = r.questions[qi];
+      qe.querySelector('[data-f=text]').addEventListener('input', e => { q.text = e.target.value; markDirty(); });
+      qe.querySelectorAll('[data-f=opt]').forEach(inp => inp.addEventListener('input', e => { q.options[+inp.dataset.i] = e.target.value; markDirty(); }));
+      qe.querySelectorAll('[data-f=correct]').forEach(inp => inp.addEventListener('change', () => { q.correct = +inp.value; markDirty(); }));
+      qe.querySelector('[data-f=time]').addEventListener('change', e => { q.time = +e.target.value; markDirty(); });
+      qe.querySelector('[data-f=image]').addEventListener('change', async e => { const f = e.target.files[0]; if(!f) return;
+        try{ q.image = await resize(f); markDirty(); renderEditor(); }catch(err){ document.getElementById('sstat').textContent = 'Kunne ikke lese bildet'; } });
+      qe.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
+        if(b.dataset.a === 'qup'){ [r.questions[qi - 1], r.questions[qi]] = [r.questions[qi], r.questions[qi - 1]]; }
+        if(b.dataset.a === 'qdel'){ if(!b.dataset.sure){ b.dataset.sure = 1; b.textContent = 'Sikker?'; return; } r.questions.splice(qi, 1); }
+        if(b.dataset.a === 'noimg') delete q.image;
+        markDirty(); renderEditor();
+      }));
+    });
+  });
+  E.rounds.forEach(r => r.questions.forEach(q => { while(q.options.length < 4) q.options.push(''); }));
+}
+addEventListener('keydown', e => { if(location.hash === '#rediger' && (e.metaKey || e.ctrlKey) && e.key === 's'){ e.preventDefault(); save(); } });
+addEventListener('beforeunload', e => { if(E.dirty){ e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- ruting ---------- */
+function route(){
+  clearInterval(H.poll); clearInterval(P.poll);
+  if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; (H.s && H.s.gid && H.s.pin) ? startHost() : hostLogin(); }
+  else if(location.hash === '#rediger'){ document.title = 'Nyttårsquiz · redigering'; editLogin(); }
+  else { document.title = 'Nyttårsquiz'; if(P.s && P.s.pid) startPlayer(); else playerJoin(); }
+}
+addEventListener('hashchange', route);
+route();
+}
+</script>
+</body>
+</html>
