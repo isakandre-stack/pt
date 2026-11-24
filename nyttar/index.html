@@ -329,7 +329,7 @@ function hostLogin(msg){
       <div><label for="hteams">Antall lag</label><select id="hteams">${[0,2,3,4,5,6,7,8].map(n => `<option value="${n}" ${n === 5 ? 'selected' : ''}>${n ? n + ' lag' : 'Ingen lag'}</option>`).join('')}</select></div>
       <div class="err" id="herr">${esc(msg || '')}</div>
       <button type="submit" style="min-height:56px">Start nytt spill</button>
-      ${H.s && H.s.gid ? `<button type="button" class="ghost" id="resume">Fortsett forrige spill</button>` : ''}
+      <div id="resumebox"></div>
       <p class="hint">Vis denne siden på storskjermen. Spillerne går til <b>${esc(playerUrl())}</b>. Spørsmålene endrer du på <a href="#rediger" style="color:var(--gold)">redigeringssiden</a>.</p>
     </form></div>`;
   document.getElementById('hf').addEventListener('submit', async e => {
@@ -338,8 +338,14 @@ function hostLogin(msg){
       H.s = {gid: r.game_id, pin: pinv}; ls.set('nq_host', H.s); startHost();
     }catch(err){ document.getElementById('herr').textContent = err.message; }
   });
-  const rs = document.getElementById('resume');
-  if(rs) rs.addEventListener('click', () => startHost());
+  if(H.s && H.s.gid && H.s.pin){
+    rpc('quiz_host_status', {p_game: H.s.gid, p_pin: H.s.pin}).then(st => {
+      if(st.game.status === 'ended') return;
+      const box = document.getElementById('resumebox'); if(!box) return;
+      box.innerHTML = `<button type="button" class="ghost" style="width:100%">Fortsett spill ${esc(st.game.code)} (${st.players.length} spillere)</button>`;
+      box.firstChild.addEventListener('click', () => startHost());
+    }).catch(() => {});
+  }
 }
 
 async function startHost(){
@@ -379,7 +385,7 @@ function teamBars(g, players){
 function renderHost(){
   const {game: g, players} = H.st; const q = g.q_public || {}; const full = H.qs[g.q_index] || {};
   const key = [g.status, g.q_index].join('|');
-  const nextBtn = label => `<button id="next" style="min-height:56px;font-size:19px;padding:12px 30px">${label} →</button>`;
+  const nextBtn = label => `<span style="display:flex;gap:10px;align-items:center"><button class="ghost" id="quit" style="opacity:.6">Til startsiden</button><button id="next" style="min-height:56px;font-size:19px;padding:12px 30px">${label} →</button></span>`;
   if(key !== H.key){
     H.key = key; H.lastSec = null;
     let html = '';
@@ -436,6 +442,7 @@ function renderHost(){
     }
     app.innerHTML = html;
     const nb = document.getElementById('next'); if(nb) nb.addEventListener('click', hostNext);
+    const qb = document.getElementById('quit'); if(qb) qb.addEventListener('click', () => { clearInterval(H.poll); H.st = null; hostLogin(); });
     const ng = document.getElementById('newgame'); if(ng) ng.addEventListener('click', () => { clearInterval(H.poll); H.s.gid = null; ls.set('nq_host', H.s); hostLogin(); });
   }
   // levende deler
@@ -591,7 +598,7 @@ addEventListener('beforeunload', e => { if(E.dirty){ e.preventDefault(); e.retur
 function route(){
   clearInterval(H.poll); clearInterval(P.poll);
   fsBtn.hidden = location.hash !== '#vert' || !document.documentElement.requestFullscreen;
-  if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; (H.s && H.s.gid && H.s.pin) ? startHost() : hostLogin(); }
+  if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; hostLogin(); }
   else if(location.hash === '#rediger'){ document.title = 'Nyttårsquiz · redigering'; editLogin(); }
   else { document.title = 'Nyttårsquiz'; if(P.s && P.s.pid) startPlayer(); else playerJoin(); }
 }
