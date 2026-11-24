@@ -192,9 +192,9 @@ const music = (() => {
   let ctx, master, noise, mode = null, on = true, next = 0, step = 0, timer = null;
   const N = m => 440 * Math.pow(2, (m - 69) / 12);
   const MODES = {
-    chill: {bpm: 96, vol: .5, kick: false, chords: [[60,64,67,71],[57,60,64,67],[53,57,60,64],[55,59,62,65]]},
-    tense: {bpm: 132, vol: .55, kick: true, chords: [[57,60,64],[57,60,64],[53,57,60],[52,56,59]]},
-    party: {bpm: 122, vol: .6, kick: true, chords: [[60,64,67,72],[57,60,64,69],[53,57,60,65],[55,59,62,67]]}
+    chill: {bpm: 96, vol: 3.4, kick: false, chords: [[60,64,67,71],[57,60,64,67],[53,57,60,64],[55,59,62,65]]},
+    tense: {bpm: 132, vol: 3.2, kick: true, chords: [[57,60,64],[57,60,64],[53,57,60],[52,56,59]]},
+    party: {bpm: 122, vol: 3.4, kick: true, chords: [[60,64,67,72],[57,60,64,69],[53,57,60,65],[55,59,62,67]]}
   };
   function init(){
     if(ctx) return; ctx = new AudioContext(); master = ctx.createGain(); master.gain.value = 0;
@@ -237,7 +237,8 @@ const music = (() => {
     start(){ try{ init(); ctx.resume(); const m = mode; mode = null; set(m); }catch(e){} },
     set(m){ if(!ctx){ mode = m; return; } set(m); },
     toggle(){ on = !on; if(ctx && mode) master.gain.setTargetAtTime(on ? MODES[mode].vol : 0, ctx.currentTime, .2); return on; },
-    fast(fn){ tenseFast = fn; }
+    fast(fn){ tenseFast = fn; },
+    wake(){ try{ if(ctx && ctx.state !== 'running') ctx.resume(); }catch(e){} }
   };
 })();
 const chime = () => [660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, .35, 'triangle'), i * 110));
@@ -539,6 +540,7 @@ const fsBtn = document.getElementById('fs');
 function toggleFs(){ try{ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }catch(e){} }
 fsBtn.addEventListener('click', toggleFs);
 const muBtn = document.getElementById('mu');
+['pointerdown','keydown'].forEach(ev => addEventListener(ev, () => { if(location.hash === '#vert' && H.st) music.wake(); }, true));
 function toggleMusic(){ const on = music.toggle(); muBtn.textContent = on ? '♪ Musikk på' : '♪ Musikk av'; music.start(); }
 muBtn.addEventListener('click', toggleMusic);
 document.addEventListener('keydown', e => {
