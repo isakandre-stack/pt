@@ -318,7 +318,7 @@ function renderPlayer(){
   const key = [g.status, g.q_index, a && a.choice, a && a.wager, me.kicked, me.score, g.ceremony].join('|');
   if(key === P.key) return; P.key = key;
   const q = g.q || {};
-  const top = `<div class="top"><span class="chip">${teamDot(me.team)}${esc(me.name)}</span><span class="mute">${g.status === 'ended' && g.ceremony < 4 ? '' : fmt(me.score) + ' poeng'}</span></div>`;
+  const top = `<div class="top"><span class="chip">${teamDot(me.team)}${esc(me.name)}</span><span class="mute">${(g.status === 'ended' && g.ceremony < 4) || (g.status === 'reveal' && g.q_index + 1 >= g.q_count) ? '' : fmt(me.score) + ' poeng'}</span></div>`;
   const isFinale = q.kind === 'finale';
   const out = !me.finalist && isFinale && (g.status === 'wager' || g.status === 'question');
   let body = '';
@@ -360,7 +360,7 @@ function renderPlayer(){
       <h2 class="big ${right ? 'good' : 'bad'}">${txt}</h2>
       <div class="disp" style="font-size:34px">${pts ? (pts > 0 ? '+' : '') + fmt(pts) : '+0'}</div>
       <p>Riktig svar: <b>${esc((q.options || [])[r.correct])}</b></p>
-      <p class="mute">Du ligger på plass ${me.rank} av ${me.total}</p></div>`;
+      <p class="mute">${g.q_index + 1 >= g.q_count ? 'Plasseringen avsløres i kåringen. Følg med på storskjermen!' : `Du ligger på plass ${me.rank} av ${me.total}`}</p></div>`;
   } else if(g.status === 'leaderboard'){
     body = `<div class="card center" style="margin-top:8vh"><p class="mute">Du ligger på plass</p><div class="big disp" style="color:var(--gold)">${me.rank}</div><p class="mute">av ${me.total} spillere · ${fmt(me.score)} poeng</p></div>`;
   } else if(g.status === 'finale_intro'){
