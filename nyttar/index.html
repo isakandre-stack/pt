@@ -15,14 +15,14 @@ PICTURE: fyrverkeri i bakgrunnen, store fargede svarknapper med egne symboler
 COLOUR and TYPE: midnatt #140b2e, champagne #f6d488, svar i korall/turkis/gull/fiolett; Unbounded + Inter
 LAYOUT: storskjerm fyller hele flaten, mobil er én kolonne med store knapper
 */
-:root{--bg:#140b2e;--bg2:#21134a;--ink:#fff8ec;--mute:#c8bfe0;--gold:#f6d488;--line:rgba(255,255,255,.14);
+:root{--dfont:Unbounded,Inter,sans-serif;--bg:#140b2e;--bg2:#21134a;--ink:#fff8ec;--mute:#c8bfe0;--gold:#f6d488;--line:rgba(255,255,255,.14);
 --c0:#ff5d73;--c1:#1fbfa9;--c2:#f0a81e;--c3:#7a6bff;color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 html,body{height:100%}
 body{margin:0;background:radial-gradient(120% 80% at 50% 0%,#2a1760 0%,var(--bg) 60%) fixed;color:var(--ink);font:17px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
 #fw{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 #app{position:relative;z-index:1;min-height:100%}
-h1,h2,h3,.disp{font-family:Unbounded,Inter,sans-serif;font-weight:800;line-height:1.08;margin:0;text-wrap:balance}
+h1,h2,h3,.disp{font-family:var(--dfont);font-weight:800;line-height:1.08;margin:0;text-wrap:balance}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;border-radius:14px;min-height:48px;padding:10px 20px;font-weight:700;background:var(--gold);color:#1b0f3a;transition:transform .08s}
 button:active{transform:scale(.97)}
@@ -53,14 +53,14 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 .wagers .all{grid-column:1/-1;background:var(--c0);color:#fff}
 .good{color:#7ff0c9}.bad{color:#ffb3bd}
 /* ---------- storskjerm ---------- */
-.stage{min-height:100vh;display:flex;flex-direction:column;padding:clamp(18px,3vw,44px);gap:clamp(14px,2vw,28px)}
+.stage{min-height:100vh;display:flex;flex-direction:column;padding:clamp(18px,3vw,44px) clamp(18px,3vw,44px) 76px;gap:clamp(14px,2vw,28px)}
 .stage .head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 .stage .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:auto}
 .lobby{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,3vw,48px);align-items:start;flex:1}
 .joinbox{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
 .qr{background:#fff;border-radius:22px;padding:14px;width:min(300px,38vw);aspect-ratio:1}
 .qr svg,.qr img{width:100%;height:100%;display:block}
-.code{font-family:Unbounded;font-weight:800;font-size:clamp(64px,9vw,150px);letter-spacing:.06em;color:var(--gold);line-height:1}
+.code{font-family:var(--dfont);font-weight:800;font-size:clamp(64px,9vw,150px);letter-spacing:.06em;color:var(--gold);line-height:1}
 .url{font-size:clamp(16px,1.6vw,24px);word-break:break-all}
 .names{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;max-height:52vh;overflow:auto}
 .names .chip{font-size:clamp(15px,1.4vw,20px);animation:pop .35s ease-out both}
@@ -71,17 +71,17 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 .sopts{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,20px)}
 .sopt{min-height:clamp(70px,13vh,150px);border-radius:22px;padding:clamp(14px,1.6vw,26px);display:flex;align-items:center;gap:18px;font-size:clamp(20px,2.3vw,36px);font-weight:700;color:#fff;position:relative;overflow:hidden;box-shadow:inset 0 -8px 0 rgba(0,0,0,.18)}
 .sopt svg{width:clamp(30px,3vw,48px);height:clamp(30px,3vw,48px);fill:#fff;flex:none}
-.sopt .cnt{margin-left:auto;font-family:Unbounded;font-size:.9em}
+.sopt .cnt{margin-left:auto;font-family:var(--dfont);font-size:.9em}
 .sopt.dim{opacity:.28}
 .sopt.win{outline:5px solid #fff;outline-offset:-5px}
 .sopt .fill{position:absolute;inset:0;background:rgba(255,255,255,.18);transform-origin:left;transition:transform .8s ease-out}
 .sopt>*:not(.fill){position:relative}
-.ring{width:clamp(70px,7vw,110px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-family:Unbounded;font-weight:800;font-size:clamp(26px,2.6vw,42px);background:conic-gradient(var(--gold) var(--p,100%),rgba(255,255,255,.12) 0)}
+.ring{width:clamp(70px,7vw,110px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-family:var(--dfont);font-weight:800;font-size:clamp(26px,2.6vw,42px);background:conic-gradient(var(--gold) var(--p,100%),rgba(255,255,255,.12) 0)}
 .ring span{width:78%;aspect-ratio:1;border-radius:50%;background:var(--bg);display:grid;place-items:center}
 .lb{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(20px,3vw,48px);flex:1}
 .rows{display:flex;flex-direction:column;gap:8px}
 .row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:10px 18px;border-radius:14px;background:rgba(255,255,255,.07);font-size:clamp(17px,1.6vw,26px)}
-.row .n{font-family:Unbounded;color:var(--gold)}
+.row .n{font-family:var(--dfont);color:var(--gold)}
 .row .d{color:#7ff0c9;font-size:.8em;white-space:nowrap}
 .row b{white-space:nowrap;font-variant-numeric:tabular-nums}
 .tbar{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:12px;align-items:center;font-size:clamp(16px,1.4vw,22px)}
@@ -89,7 +89,7 @@ label{font-size:14px;color:var(--mute);display:block;margin-bottom:6px}
 .tbar .track i{display:block;height:100%;border-radius:9px;transition:width .8s}
 .podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:clamp(10px,2vw,28px);max-width:1000px;margin:0 auto;width:100%}
 .pod{text-align:center;display:flex;flex-direction:column;gap:10px}
-.pod .blk{border-radius:20px 20px 0 0;background:linear-gradient(180deg,var(--gold),#c79a3c);color:#1b0f3a;font-family:Unbounded;font-weight:800;font-size:clamp(36px,5vw,80px);display:grid;place-items:center}
+.pod .blk{border-radius:20px 20px 0 0;background:linear-gradient(180deg,var(--gold),#c79a3c);color:#1b0f3a;font-family:var(--dfont);font-weight:800;font-size:clamp(36px,5vw,80px);display:grid;place-items:center}
 .pod .nm{font-size:clamp(18px,2vw,32px);font-weight:700;overflow-wrap:anywhere}
 .finalists{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
 .fcard{border-radius:20px;padding:22px;background:rgba(255,255,255,.08);border:1.5px solid var(--gold);text-align:center;font-size:clamp(18px,1.8vw,28px);font-weight:700}
@@ -153,6 +153,7 @@ const teamName = (g, t) => (g.team_names && g.team_names[t]) || '';
 const teamDot = t => `<span class="dot" style="background:${TEAM_COLORS[t % 8]}"></span>`;
 
 /* ---------- fyrverkeri ---------- */
+let FWFONT = 'Unbounded, Inter, sans-serif';
 const fw = (() => {
   const c = document.getElementById('fw'), x = c.getContext('2d'); let parts = [], level = 0, last = 0;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -169,7 +170,7 @@ const fw = (() => {
   }
   function tick(t){
     x.clearRect(0, 0, c.width, c.height);
-    x.font = `800 ${Math.round(21 * devicePixelRatio)}px Unbounded, Inter, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = `800 ${Math.round(21 * devicePixelRatio)}px ${FWFONT}`; x.textAlign = 'center'; x.textBaseline = 'middle';
     if(level && !reduce && t - last > (level > 1 ? 450 : 2600)){ burst(); last = t; }
     parts = parts.filter(p => p.life > 0);
     for(const p of parts){ p.x += p.vx; p.y += p.vy; p.vy += 0.03 * devicePixelRatio; p.vx *= .985; p.life -= .011;
@@ -224,6 +225,14 @@ const music = (() => {
   };
 })();
 const musicReady = music.load().catch(() => {});
+async function loadBrandFont(){
+  const t = await tracks.get('font');
+  if(!t || !t.blob){ document.documentElement.style.removeProperty('--dfont'); FWFONT = 'Unbounded, Inter, sans-serif'; return null; }
+  try{ const f = new FontFace('Egenskrift', await t.blob.arrayBuffer()); await f.load(); document.fonts.add(f);
+    if(location.hash === '#vert'){ document.documentElement.style.setProperty('--dfont', 'Egenskrift, Inter, sans-serif'); FWFONT = 'Egenskrift, Inter, sans-serif'; }
+    return t.name; }catch(e){ return null; }
+}
+let fontName = null; const fontReady = loadBrandFont().then(n => fontName = n).catch(() => {});
 const chime = () => [660, 880, 1320].forEach((f, i) => setTimeout(() => beep(f, .35, 'triangle'), i * 110));
 
 /* =========================================================
@@ -371,6 +380,7 @@ function hostLogin(msg){
     <form class="card" id="hf" style="display:flex;flex-direction:column;gap:14px">
       <div><label for="hpin">PIN</label><input id="hpin" type="password" inputmode="numeric" value="${esc(pin)}"></div>
       <div><label for="hteams">Antall lag</label><select id="hteams">${[0,2,3,4,5,6,7,8].map(n => `<option value="${n}" ${n === 5 ? 'selected' : ''}>${n ? n + ' lag' : 'Ingen lag'}</option>`).join('')}</select></div>
+      <div><label>Skrift (valgfritt, .ttf eller .woff)</label><div id="fontbox"></div></div>
       <div><label>Musikk (valgfritt, mp3 eller lignende)</label><div id="musicbox" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <div class="err" id="herr">${esc(msg || '')}</div>
       <button type="submit" style="min-height:56px">Start nytt spill</button>
@@ -383,7 +393,7 @@ function hostLogin(msg){
       H.s = {gid: r.game_id, pin: pinv}; ls.set('nq_host', H.s); startHost();
     }catch(err){ document.getElementById('herr').textContent = err.message; }
   });
-  renderMusicBox(); musicReady.then(renderMusicBox);
+  renderMusicBox(); Promise.all([musicReady, fontReady]).then(renderMusicBox);
   if(H.s && H.s.gid && H.s.pin){
     rpc('quiz_host_status', {p_game: H.s.gid, p_pin: H.s.pin}).then(st => {
       if(st.game.status === 'ended') return;
@@ -400,6 +410,14 @@ function renderMusicBox(){
     <label class="ghost" style="margin:0;display:inline-flex;align-items:center;min-height:40px;padding:6px 14px;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer">Velg fil<input type="file" accept="audio/*" data-k="${k}" hidden></label>
     ${l[k] ? `<button type="button" class="ghost" data-rm="${k}" style="min-height:40px;padding:6px 12px;font-size:14px">Fjern</button>` : ''}</div>`;
   box.innerHTML = row('lobby', 'Lobby og stilling') + row('question', 'Under spørsmål');
+  const fb = document.getElementById('fontbox');
+  if(fb){ fb.innerHTML = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:140px;font-size:15px">Overskrifter: <span class="mute">${fontName ? esc(fontName) : 'standard'}</span></span>
+    <label class="ghost" style="margin:0;display:inline-flex;align-items:center;min-height:40px;padding:6px 14px;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer">Velg fil<input type="file" accept=".ttf,.otf,.woff,.woff2,font/*" id="fontfile" hidden></label>
+    ${fontName ? '<button type="button" class="ghost" id="fontrm" style="min-height:40px;padding:6px 12px;font-size:14px">Fjern</button>' : ''}</div>`;
+    document.getElementById('fontfile').addEventListener('change', async e => { const f = e.target.files[0]; if(!f) return;
+      try{ await tracks.put('font', {name: f.name, blob: f}); fontName = await loadBrandFont(); if(!fontName) throw 0; renderMusicBox(); }
+      catch(err){ await tracks.del('font'); document.getElementById('herr').textContent = 'Kunne ikke lese skriftfilen'; } });
+    const rm = document.getElementById('fontrm'); if(rm) rm.addEventListener('click', async () => { await tracks.del('font'); fontName = await loadBrandFont(); renderMusicBox(); }); }
   box.querySelectorAll('input[type=file]').forEach(i => i.addEventListener('change', async () => { const f = i.files[0]; if(!f) return;
     try{ await tracks.put(i.dataset.k, {name: f.name, blob: f}); await music.load(); renderMusicBox(); }catch(e){ document.getElementById('herr').textContent = 'Kunne ikke lagre lydfilen i nettleseren'; } }));
   box.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', async () => { await tracks.del(b.dataset.rm); await music.load(); renderMusicBox(); }));
@@ -661,6 +679,8 @@ addEventListener('beforeunload', e => { if(E.dirty){ e.preventDefault(); e.retur
 function route(){
   clearInterval(H.poll); clearInterval(P.poll);
   fsBtn.hidden = location.hash !== '#vert' || !document.documentElement.requestFullscreen;
+  if(location.hash === '#vert' && fontName){ document.documentElement.style.setProperty('--dfont', 'Egenskrift, Inter, sans-serif'); FWFONT = 'Egenskrift, Inter, sans-serif'; }
+  if(location.hash !== '#vert'){ document.documentElement.style.removeProperty('--dfont'); FWFONT = 'Unbounded, Inter, sans-serif'; }
   muBtn.hidden = location.hash !== '#vert'; if(location.hash !== '#vert') music.set(null);
   if(location.hash === '#vert'){ document.title = 'Nyttårsquiz · storskjerm'; hostLogin(); }
   else if(location.hash === '#rediger'){ document.title = 'Nyttårsquiz · redigering'; editLogin(); }
